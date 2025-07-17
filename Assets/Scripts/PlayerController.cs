@@ -24,11 +24,6 @@ public class PlayerController : MonoBehaviour
     private Interactable target;
 
     /*──────────── Setup ───────────*/
-
-    void Start()
-{
-    target = null; // evita ataque automático no primeiro frame
-}
     void Awake()
     {
         agent    = GetComponent<NavMeshAgent>();
@@ -87,6 +82,7 @@ public class PlayerController : MonoBehaviour
         float dist = Vector3.Distance(transform.position, target.transform.position);
         if (dist <= magic.MageAttackRange && magic.CanCastMageAttack)
         {
+            magic.SetCurrentAttackTarget(target.transform);
             magic.TryCastMageAttackAt(target.transform.position);
         }
     }
@@ -138,15 +134,16 @@ public class PlayerController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, rot, Time.deltaTime * lookRotationSpeed);
     }
 
-    void SetAnimations()
-    {
-        if (agent.velocity.magnitude > 1f)
-            PlayAnimation(WALK);
-        else
-            PlayAnimation(IDLE);
+void SetAnimations()
+{
+    // Se estamos no meio de um cast/ataque, não sobrescreva a animação
+    if (magic.IsCasting)
+        return;
 
-        animator.SetFloat("Speed", agent.velocity.magnitude);
-    }
+    // Apenas atualize o parâmetro Speed; as transições cuidam do resto
+    float speed = agent.velocity.magnitude;
+    animator.SetFloat("Speed", speed);
+}
 
     void PlayAnimation(string anim)
     {

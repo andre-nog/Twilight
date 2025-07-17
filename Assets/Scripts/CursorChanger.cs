@@ -3,42 +3,69 @@ using UnityEngine.InputSystem; // Novo Input System
 
 public class CursorChanger : MonoBehaviour
 {
-    [SerializeField] private Vector2 hotspot = new Vector2(16, 16);
-    [SerializeField] private float maxRaycastDistance = 100f;
+    [SerializeField] private Vector2 hotspot       = new Vector2(16, 16);
+    [SerializeField] private float   maxRaycastDistance = 100f;
+    [SerializeField] private LayerMask enemyLayer;
 
     private Texture2D redCircleCursor;
-    private bool isHoveringEnemy = false;
+    private bool      isHoveringEnemy = false;
 
     void Start()
     {
+        // Gera o cursor de círculo vermelho
         redCircleCursor = GenerateRedCircleTexture(32, Color.red);
-        // Mantém a seta padrão do sistema no início
+
+        // Garante que começamos com a seta padrão
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+
+        // Debug inicial da máscara configurada
+        Debug.Log($"CursorChanger: enemyLayer mask value = {enemyLayer.value}");
     }
 
     void Update()
     {
-        if (Camera.main == null || Mouse.current == null) return;
+        if (Camera.main == null || Mouse.current == null)
+        {
+            Debug.LogWarning("CursorChanger: Camera.main ou Mouse.current é null");
+            return;
+        }
 
-        // Raycast a partir da posição do mouse
-        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        // Cria o raio a partir da posição do mouse
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+
+        // Desenha o raio na Scene View
         Debug.DrawRay(ray.origin, ray.direction * maxRaycastDistance, Color.red);
 
-        // Testa colisão em qualquer layer
-        bool hitSomething = Physics.Raycast(ray, out RaycastHit hit, maxRaycastDistance);
+        // 1) Raw Raycast (todas as layers) para ver o que está abaixo do cursor
+        if (Physics.Raycast(ray, out RaycastHit rawHit, maxRaycastDistance))
+        {
+            Debug.Log($">>> Raw Raycast hit: {rawHit.collider.gameObject.name} (layer: {LayerMask.LayerToName(rawHit.collider.gameObject.layer)})");
+        }
+        else
+        {
+            Debug.Log(">>> Raw Raycast não acertou nenhum collider");
+        }
 
-        // Usa tag para decidir se é um "inimigo"
-        bool isNowHovering = hitSomething && hit.collider.CompareTag("Interactable");
-        
+        // 2) Raycast filtrado pela máscara de layer “Enemy”
+        bool isNowHovering = Physics.Raycast(ray, out RaycastHit hit, maxRaycastDistance, enemyLayer);
+        Debug.Log($"CursorChanger: Masked Raycast hit enemy? {isNowHovering}");
+
+        if (isNowHovering)
+        {
+            Debug.Log($">>> Masked hit: {hit.collider.gameObject.name} (layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)})");
+        }
+
+        // Troca de cursor ao entrar/sair do hover
         if (isNowHovering && !isHoveringEnemy)
         {
-            // Entrou no hover de um Interactable
+            Debug.Log("CursorChanger: Entered enemy hover — setting red circle cursor");
             Cursor.SetCursor(redCircleCursor, hotspot, CursorMode.Auto);
             isHoveringEnemy = true;
         }
         else if (!isNowHovering && isHoveringEnemy)
         {
-            // Saiu do hover
+            Debug.Log("CursorChanger: Exited enemy hover — resetting to default cursor");
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             isHoveringEnemy = false;
         }

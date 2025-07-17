@@ -27,7 +27,8 @@ public class PlayerMagicSystem : MonoBehaviour
     //───────────────────────────────────────
     //             COMPONENTES
     //───────────────────────────────────────
-
+    private Transform currentAttackTarget;
+    public void SetCurrentAttackTarget(Transform t) => currentAttackTarget = t;
     private CustomActions input;
     private NavMeshAgent agent;
     private Animator animator;
@@ -182,6 +183,10 @@ public class PlayerMagicSystem : MonoBehaviour
         if (IsBusy || mageAttackData == null || mageAttackPrefab == null) return;
         if (currentMana < mageAttackData.ManaCost || Time.time < mageAttackReadyTime) return;
 
+            animator.SetFloat("AttackSpeed", playerStats.AttackSpeed);
+    animator.ResetTrigger("AttackTrigger");
+    animator.SetTrigger("AttackTrigger");
+
         currentMana -= mageAttackData.ManaCost;
         mageAttackReadyTime = Time.time + mageAttackData.Cooldown;
 
@@ -197,6 +202,20 @@ public class PlayerMagicSystem : MonoBehaviour
             position
         ));
     }
+    public void OnAttackFrame()
+    {
+        if (mageAttackPrefab == null || mageAttackData == null || castPoint == null) return;
+        if (currentAttackTarget == null) return;
+
+        Vector3 aimPos = currentAttackTarget.position + Vector3.up * 0.5f;
+        Vector3 dir = (aimPos - castPoint.position).normalized;
+        Quaternion rot = Quaternion.LookRotation(dir, Vector3.up);
+
+        var proj = Instantiate(mageAttackPrefab, castPoint.position, rot);
+        if (proj.TryGetComponent<MageAttack_Script>(out var script))
+            script.Init(mageAttackData, gameObject, currentAttackTarget);
+    }
+
 
     //───────────────────────────────────────
     //                UTILS

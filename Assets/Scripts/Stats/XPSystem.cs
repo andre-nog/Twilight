@@ -14,7 +14,7 @@ public class PlayerXP : MonoBehaviour
             stats.Level++;
 
             // Aumento de ataque por nível
-            stats.AttackDamage += 2;
+            stats.AttackDamage += 0;
 
             Debug.Log($"[LEVEL UP] Agora é nível {stats.Level}! Novo dano: {stats.AttackDamage}");
 

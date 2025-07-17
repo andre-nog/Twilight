@@ -21,35 +21,35 @@ public static class MageAttackSpellExecutor
 
         PauseAgent(agent);
 
-        animator?.ResetTrigger("AttackTrigger");
-        animator?.SetTrigger("AttackTrigger");
+        // Não instanciamos projétil aqui — a criação fica por conta do Animation Event (OnAttackFrame),
+        // garantindo total sincronismo entre animação e lógica de attack.
+        // Ainda podemos girar durante o cast:
+        float timer = 0f;
+        float delay = Mathf.Max(0.05f, mageAttackData.CastDelay);
+        while (timer < delay)
+        {
+            timer += Time.deltaTime;
 
-        yield return new WaitForSeconds(mageAttackData.CastDelay);
+            Vector3 dir = aimPoint - caster.transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+                caster.transform.rotation = Quaternion.Slerp(
+                    caster.transform.rotation,
+                    targetRot,
+                    Time.deltaTime * 8f
+                );
+            }
 
-        LaunchProjectile(caster, castPoint, mageAttackPrefab, mageAttackData, aimPoint);
+            yield return null;
+        }
 
         setCasting(false);
         yield return new WaitForSeconds(0.05f);
         setBusy(false);
+
         ResumeAgent(agent);
-    }
-
-    private static void LaunchProjectile(GameObject caster, Transform castPoint, GameObject prefab, MageAttackSpell data, Vector3 aimPoint)
-    {
-        Vector3 spawn = castPoint != null
-            ? castPoint.position
-            : caster.transform.position + caster.transform.forward * 0.5f + Vector3.up * 0.5f;
-
-        Vector3 direction = (aimPoint - spawn).normalized;
-        direction.y = 0f;
-
-        Quaternion rotation = Quaternion.LookRotation(direction);
-        GameObject projectile = GameObject.Instantiate(prefab, spawn, rotation);
-
-        if (projectile.TryGetComponent<MageAttack_Script>(out var spell))
-        {
-            spell.Init(data, caster);
-        }
     }
 
     private static void PauseAgent(NavMeshAgent agent)

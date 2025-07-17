@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4c8078752cee634f970daaaafbb0735, type: 3}
   m_Name: Mage_Attack
   m_EditorClassIdentifier: 
-  DamageAmount: 10
+  DamageAmount: 2
   ManaCost: 0
-  CastDelay: 0.25
-  Cooldown: 1.4285715
+  CastDelay: 0
+  Cooldown: 1
   Lifetime: 1
   Speed: 10
   SpellRadius: 0.5
