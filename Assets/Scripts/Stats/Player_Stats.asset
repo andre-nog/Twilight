@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4121ac63546ad84b8471036272b8505, type: 3}
   m_Name: Player_Stats
   m_EditorClassIdentifier: 
-  AttackDamage: 7
+  AttackDamage: 3
   AttackSpeed: 0.7
-  Level: 4
-  Experience: 51
+  Level: 2
+  Experience: 25
   Strength: 1
   Intelligence: 20
   Agility: 1
