@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DamageAmount: 1
   ManaCost: 5
-  CastDelay: 1
-  Cooldown: 3
+  CastDelay: 0
+  Cooldown: 6
   Lifetime: 2
   Speed: 15
   SpellRadius: 0.5

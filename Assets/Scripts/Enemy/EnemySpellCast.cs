@@ -20,16 +20,17 @@ public class EnemySpellCast : MonoBehaviour
     private NavMeshAgent               agent;
     private EnemyState                 enemyState;
     private EnemyDetectionAndAttack    attackModule;
-
-    private float  spellTimer = 0f;
+    private float spellTimer = 0f;
     private bool   spellReady = false;
+    
+    
 
     public void Init(Transform player)
     {
-        target       = player;
-        animator     = GetComponent<Animator>();
-        agent        = GetComponent<NavMeshAgent>();
-        enemyState   = GetComponent<EnemyState>();
+        target = player;
+        animator = GetComponent<Animator>();
+        agent = GetComponent<NavMeshAgent>();
+        enemyState = GetComponent<EnemyState>();
         attackModule = GetComponent<EnemyDetectionAndAttack>();
 
         spellTimer = 0f;
@@ -64,9 +65,9 @@ public class EnemySpellCast : MonoBehaviour
     {
         // A) bloqueia tudo: para o agente e marca busy
         enemyState?.SetBusy(true);
-        agent.isStopped = true;
-        agent.ResetPath();
-        agent.velocity = Vector3.zero;
+        //agent.isStopped = true;
+       // agent.ResetPath();
+       // agent.velocity = Vector3.zero;
 
         // B) gira de frente pro alvo
         Vector3 dir = (target.position - transform.position);

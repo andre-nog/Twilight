@@ -17,16 +17,12 @@ public class CursorChanger : MonoBehaviour
 
         // Garante que começamos com a seta padrão
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-
-        // Debug inicial da máscara configurada
-        Debug.Log($"CursorChanger: enemyLayer mask value = {enemyLayer.value}");
     }
 
     void Update()
     {
         if (Camera.main == null || Mouse.current == null)
         {
-            Debug.LogWarning("CursorChanger: Camera.main ou Mouse.current é null");
             return;
         }
 
@@ -37,24 +33,8 @@ public class CursorChanger : MonoBehaviour
         // Desenha o raio na Scene View
         Debug.DrawRay(ray.origin, ray.direction * maxRaycastDistance, Color.red);
 
-        // 1) Raw Raycast (todas as layers) para ver o que está abaixo do cursor
-        if (Physics.Raycast(ray, out RaycastHit rawHit, maxRaycastDistance))
-        {
-            Debug.Log($">>> Raw Raycast hit: {rawHit.collider.gameObject.name} (layer: {LayerMask.LayerToName(rawHit.collider.gameObject.layer)})");
-        }
-        else
-        {
-            Debug.Log(">>> Raw Raycast não acertou nenhum collider");
-        }
-
         // 2) Raycast filtrado pela máscara de layer “Enemy”
         bool isNowHovering = Physics.Raycast(ray, out RaycastHit hit, maxRaycastDistance, enemyLayer);
-        Debug.Log($"CursorChanger: Masked Raycast hit enemy? {isNowHovering}");
-
-        if (isNowHovering)
-        {
-            Debug.Log($">>> Masked hit: {hit.collider.gameObject.name} (layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)})");
-        }
 
         // Troca de cursor ao entrar/sair do hover
         if (isNowHovering && !isHoveringEnemy)
@@ -71,28 +51,30 @@ public class CursorChanger : MonoBehaviour
         }
     }
 
-    Texture2D GenerateRedCircleTexture(int size, Color color)
+Texture2D GenerateRedCircleTexture(int size, Color color)
+{
+    Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+    tex.filterMode = FilterMode.Point;
+    // Não precisamos mais de alphaIsTransparency aqui
+
+    Color transparent = new Color(0, 0, 0, 0);
+    Vector2 center = new Vector2(size / 2f, size / 2f);
+    float radius = size / 2f - 1f;
+
+    for (int y = 0; y < size; y++)
     {
-        Texture2D tex = new Texture2D(size, size);
-        tex.filterMode = FilterMode.Point;
-        Color transparent = new Color(0, 0, 0, 0);
-
-        Vector2 center = new Vector2(size / 2f, size / 2f);
-        float radius = size / 2f - 1f;
-
-        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
         {
-            for (int x = 0; x < size; x++)
-            {
-                float dist = Vector2.Distance(new Vector2(x, y), center);
-                if (Mathf.Abs(dist - radius) <= 1.5f)
-                    tex.SetPixel(x, y, color); // borda do círculo
-                else
-                    tex.SetPixel(x, y, transparent);
-            }
+            float dist = Vector2.Distance(new Vector2(x, y), center);
+            if (Mathf.Abs(dist - radius) <= 1.5f)
+                tex.SetPixel(x, y, color); // borda do círculo
+            else
+                tex.SetPixel(x, y, transparent);
         }
-
-        tex.Apply();
-        return tex;
     }
+
+    tex.Apply();
+    return tex;
+}
+
 }

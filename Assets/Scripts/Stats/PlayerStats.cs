@@ -6,15 +6,36 @@ using UnityEngine;
 public class PlayerStats : ScriptableObject
 {
     [Header("Ofensivo")]
-    public float AttackDamage = 1f;    // dano base por projétil
-    public float AttackSpeed  = 1f;    // golpes (MageAttack) por segundo
+    public float AttackDamage;
+    public float AttackSpeed;
 
     [Header("Atributos RPG")]
-    public int Level = 1;
-    public int Experience = 0;
-    public int ExperienceToNextLevel => Mathf.FloorToInt(25 * Level);
-    public int Strength = 0;   // Pode aumentar dano físico (futuro)
-    public int Intelligence = 0; // Afeta dano mágico (MageAttack)
-    public int Agility = 0;    // Pode afetar velocidade de ataque, esquiva etc
-    //public int Armor = 0;      // Reduz dano recebido
+    public int Level;
+    public int Experience;
+    public int Strength;
+    public int Intelligence;
+    public int Agility;
+
+    // -------------------------------------
+    // Seção de Mana (fonte única de verdade)
+    // -------------------------------------
+    [Header("Mana")]
+    public float MaxMana;
+    public float CurrentMana;
+    public float ManaRechargeRate;
+
+    // -------------------------------------
+    // Auto-Attack (substitui MageAttackSpell)
+    // -------------------------------------
+    [Header("Auto-Attack")]
+    public float AutoAttackRange;              // usado como stoppingDistance
+    public float AutoAttackProjectileSpeed;    // velocidade da bolinha
+
+    // -------------------------------------
+    // Derived Stats (Editor)
+    // -------------------------------------
+    public int   ExperienceToNextLevel => Mathf.FloorToInt(25 * Level);
+    public float FinalAttackDamage    => AttackDamage * (1 + Intelligence * 0.05f);
+    public float FinalAttackSpeed     => AttackSpeed  * (1 + Agility      * 0.02f);
+
 }

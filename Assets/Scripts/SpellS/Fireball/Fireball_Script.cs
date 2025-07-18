@@ -32,10 +32,7 @@ public void Init(ProjectileSpell data, GameObject caster)
     foreach (var myCol in GetComponentsInChildren<Collider>())
     foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
         Physics.IgnoreCollision(myCol, casterCol, true);
-
-    Debug.Log("[Spell] Caster definido como: " + Caster.name);
-
-    myCollider.radius = SpellToCast.SpellRadius;
+  myCollider.radius = SpellToCast.SpellRadius;
     Destroy(gameObject, SpellToCast.Lifetime);
 }
 

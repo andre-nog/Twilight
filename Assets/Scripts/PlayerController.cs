@@ -3,27 +3,22 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent), typeof(Animator))]
 public class PlayerController : MonoBehaviour
 {
-    const string IDLE = "Idle";
-    const string WALK = "Walk";
-
-    private string currentAnimation;
     private CustomActions input;
-    private NavMeshAgent agent;
-    private Animator animator;
+    private NavMeshAgent  agent;
+    private Animator      animator;
     private PlayerMagicSystem magic;
 
     [Header("Movement")]
     [SerializeField] private ParticleSystem clickEffect;
-    [SerializeField] private LayerMask clickableLayers;
-    [SerializeField] private float stopTolerance = 0.05f;
+    [SerializeField] private LayerMask      clickableLayers;
+    [SerializeField] private float          stopTolerance = 0.05f;
 
     private float lookRotationSpeed = 8f;
-
     private Interactable target;
 
-    /*──────────── Setup ───────────*/
     void Awake()
     {
         agent    = GetComponent<NavMeshAgent>();
@@ -32,30 +27,44 @@ public class PlayerController : MonoBehaviour
         magic    = GetComponent<PlayerMagicSystem>();
     }
 
-    void OnEnable()  { input.Main.Move.performed += _ => ClickToMove(); input.Enable(); }
-    void OnDisable() => input.Disable();
+    void OnEnable()
+    {
+        input.Main.Move.performed += _ => ClickToMove();
+        input.Enable();
+    }
 
-    /*──────────── Input ───────────*/
-    void ClickToMove()
+    void OnDisable()
+    {
+        input.Main.Move.performed -= _ => ClickToMove();
+        input.Disable();
+    }
+
+    void Update()
+    {
+        FaceTarget();
+        HandleMovementStop();
+        TryMageAttackIfTargetInRange();
+        SetAnimations();
+    }
+
+    private void ClickToMove()
     {
         if (!Camera.main || Mouse.current == null) return;
 
         var ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, clickableLayers)) return;
+        if (!Physics.Raycast(ray, out var hit, 100f, clickableLayers)) return;
 
         var actor = hit.transform.GetComponentInParent<Actor>();
-        if (actor != null)                                // clicou em inimigo
+        if (actor != null)
         {
+            // clicou num inimigo
             target = actor.GetComponent<Interactable>();
-
-            if (target)
-            {
-                agent.isStopped = false;
-                agent.SetDestination(target.transform.position);
-            }
+            agent.isStopped = false;
+            agent.SetDestination(target.transform.position);
         }
-        else                                              // clicou no chão
+        else
         {
+            // clicou no chão
             target = null;
             agent.isStopped = false;
             agent.SetDestination(hit.point);
@@ -65,36 +74,30 @@ public class PlayerController : MonoBehaviour
             Instantiate(clickEffect, hit.point + Vector3.up * .1f, clickEffect.transform.rotation);
     }
 
-    /*──────────── Update ───────────*/
-    void Update()
+    private void TryMageAttackIfTargetInRange()
     {
-        FaceTarget();
-        HandleMovementStop();
-        TryMageAttackIfTargetInRange();
-        SetAnimations();
-    }
+        if (target == null) 
+            return;
 
-    /*──────────── Auto-Attack ──────*/
-    void TryMageAttackIfTargetInRange()
-    {
-        if (target == null) return;
-
+        float attackRange = magic.GetPlayerStats().AutoAttackRange;
         float dist = Vector3.Distance(transform.position, target.transform.position);
-        if (dist <= magic.MageAttackRange && magic.CanCastMageAttack)
+
+        if (dist <= attackRange && magic.CanCastMageAttack)
         {
             magic.SetCurrentAttackTarget(target.transform);
-            magic.TryCastMageAttackAt(target.transform.position);
+            magic.TryCastMageAttackAt(target.transform);
         }
     }
 
-    /*──────────── Parar/Andar ──────*/
-    void HandleMovementStop()
+    private void HandleMovementStop()
     {
-        if (target == null) return;
+        if (target == null) 
+            return;
 
+        float attackRange = magic.GetPlayerStats().AutoAttackRange;
         float dist = Vector3.Distance(transform.position, target.transform.position);
 
-        if (dist <= magic.MageAttackRange)               // dentro do alcance → para
+        if (dist <= attackRange)
         {
             if (!agent.isStopped)
             {
@@ -103,53 +106,49 @@ public class PlayerController : MonoBehaviour
                 agent.velocity = Vector3.zero;
             }
         }
-        else                                             // fora do alcance → anda
+        else
         {
-            if (agent.isStopped) agent.isStopped = false;
+            if (agent.isStopped)
+                agent.isStopped = false;
+            agent.SetDestination(target.transform.position);
         }
 
-        if (!target && agent.hasPath && agent.remainingDistance <= stopTolerance)
+        // Se não tiver alvo e chegou ao destino de clique, pare o agente
+        if (target == null && agent.hasPath && agent.remainingDistance <= stopTolerance)
             agent.ResetPath();
     }
 
-    /*──────────── Visuals ──────────*/
-    void FaceTarget()
+    private void FaceTarget()
     {
+        // Se estiver lançando spell, olhe para o mouse
         if (magic.IsCasting)
         {
-            Vector3 mp  = magic.MouseWorldPoint;
+            Vector3 mp = magic.MouseWorldPoint;
             Vector3 dir = mp - transform.position; dir.y = 0f;
-            if (dir.sqrMagnitude < .001f) return;
-
-            Quaternion tgt = Quaternion.LookRotation(dir);
-            transform.rotation = Quaternion.Slerp(transform.rotation, tgt, Time.deltaTime * lookRotationSpeed);
+            if (dir.sqrMagnitude >= 0.001f)
+            {
+                var tgt = Quaternion.LookRotation(dir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, tgt, Time.deltaTime * lookRotationSpeed);
+            }
             return;
         }
 
-        Vector3 facing = target ? target.transform.position : agent.destination;
-        Vector3 d      = facing - transform.position; d.y = 0f;
-        if (d.sqrMagnitude < .001f) return;
-
-        Quaternion rot = Quaternion.LookRotation(d);
-        transform.rotation = Quaternion.Slerp(transform.rotation, rot, Time.deltaTime * lookRotationSpeed);
+        // Caso contrário, olhe para o alvo ou direção de movimento
+        Vector3 focus = target != null ? target.transform.position : agent.destination;
+        Vector3 d = focus - transform.position; d.y = 0f;
+        if (d.sqrMagnitude >= 0.001f)
+        {
+            var rot = Quaternion.LookRotation(d);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rot, Time.deltaTime * lookRotationSpeed);
+        }
     }
 
-void SetAnimations()
-{
-    // Se estamos no meio de um cast/ataque, não sobrescreva a animação
-    if (magic.IsCasting)
-        return;
-
-    // Apenas atualize o parâmetro Speed; as transições cuidam do resto
-    float speed = agent.velocity.magnitude;
-    animator.SetFloat("Speed", speed);
-}
-
-    void PlayAnimation(string anim)
+    private void SetAnimations()
     {
-        if (currentAnimation == anim) return;
-        animator.Play(anim);
-        currentAnimation = anim;
+        if (magic.IsCasting)
+            return;
+        float speed = agent.velocity.magnitude;
+        animator.SetFloat("Speed", speed);
     }
 
     public Interactable CurrentTarget => target;

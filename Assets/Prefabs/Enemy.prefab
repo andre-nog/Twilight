@@ -2453,16 +2453,15 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8042537240361149197}
-  - component: {fileID: 8461365499999071489}
   - component: {fileID: 508146996739251495}
   - component: {fileID: 4743543910109254035}
   - component: {fileID: 2814644827860188013}
   - component: {fileID: 1110505453308370340}
   - component: {fileID: 7439705447790429379}
+  - component: {fileID: 8461365499999071489}
   - component: {fileID: 2577617854756387470}
   - component: {fileID: 8673328646191415808}
   - component: {fileID: 5947504907562332726}
-  - component: {fileID: 1730944667588544381}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Interactable
@@ -2491,22 +2490,6 @@ Transform:
   - {fileID: 94086179477589229}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 168.03, z: 0}
---- !u!114 &8461365499999071489
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7474672665139633120}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d4bf1471c753994484da35bb09ad1ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 30
-  healthbarPrefab: {fileID: 8108837965831734981, guid: 3ae8d2aed8005cb46b2d7180ec052ea8, type: 3}
-  healthbarOffset: {x: 0, y: 2, z: 0}
-  experienceReward: 25
 --- !u!195 &508146996739251495
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2614,6 +2597,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &8461365499999071489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7474672665139633120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d4bf1471c753994484da35bb09ad1ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 50
+  healthbarPrefab: {fileID: 8108837965831734981, guid: 3ae8d2aed8005cb46b2d7180ec052ea8, type: 3}
+  healthbarOffset: {x: 0, y: 2, z: 0}
+  experienceReward: 25
 --- !u!114 &2577617854756387470
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2638,11 +2637,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f45653d26b12e5e43abed1e13393c28d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  detectionRange: 4
-  aggroLoseRange: 30
+  detectionRange: 7
+  aggroLoseRange: 20
   attackDistance: 1.5
-  attackSpeed: 1.5
-  attackDelay: 0.3
+  attackSpeed: 0.8
+  attackDelay: 0.7
   attackDamage: 1
   hitEffect: {fileID: 3810448783153749638, guid: 0dcbd71311f14854ca210fe1012717f1, type: 3}
 --- !u!114 &5947504907562332726
@@ -2661,19 +2660,7 @@ MonoBehaviour:
   spellData: {fileID: 11400000, guid: af8464057e9255548bec949fe2ce1dc5, type: 2}
   castPoint: {fileID: 94086179477589229}
   spellCooldown: 5
-  timeUntilFirstSpell: 2
---- !u!114 &1730944667588544381
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7474672665139633120}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fba71d0848e71f347902b2c9343f5735, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  timeUntilFirstSpell: 5
 --- !u!1 &7601477575129498072
 GameObject:
   m_ObjectHideFlags: 0

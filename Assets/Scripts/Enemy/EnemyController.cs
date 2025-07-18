@@ -1,9 +1,9 @@
+// EnemyController.cs
 using UnityEngine;
 
 [AddComponentMenu("Enemy/Controller")]
 public class EnemyController : MonoBehaviour
 {
-    private EnemyDetectionAndAttack attack;
     private EnemySpellCast spell;
 
     void Awake()
@@ -11,7 +11,7 @@ public class EnemyController : MonoBehaviour
         Transform player = GameObject.FindGameObjectWithTag("Player")?.transform;
         Vector3 origin = transform.position;
 
-        attack = GetComponent<EnemyDetectionAndAttack>();
+        var attack = GetComponent<EnemyDetectionAndAttack>();
         spell = GetComponent<EnemySpellCast>();
 
         attack?.Init(player, origin);
@@ -20,7 +20,6 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        attack?.Tick();
         spell?.Tick();
     }
 }

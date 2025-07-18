@@ -13,16 +13,12 @@ public class PlayerXP : MonoBehaviour
             stats.Experience -= stats.ExperienceToNextLevel;
             stats.Level++;
 
-            // Aumento de ataque por nível
-            stats.AttackDamage += 0;
+            // Aumento de ataque por nível (se quiser adicionar bônus, faça aqui)
+            // stats.AttackDamage += 0;
 
             Debug.Log($"[LEVEL UP] Agora é nível {stats.Level}! Novo dano: {stats.AttackDamage}");
-
-            // Recalcula o dano aplicado nas spells
-            if (TryGetComponent<PlayerMagicSystem>(out var magic))
-            {
-                magic.ApplyStats();
-            }
+            
+            // Não é mais necessário chamar ApplyStats no PlayerMagicSystem
         }
     }
 }

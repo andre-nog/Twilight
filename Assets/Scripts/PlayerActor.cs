@@ -55,8 +55,6 @@ public class PlayerActor : MonoBehaviour
 
     private void Die()
     {
-        // Aqui você pode colocar respawn, animação de morte, etc
-        Debug.Log($"[Player] {gameObject.name} morreu!");
         Destroy(gameObject);
     }
 }
