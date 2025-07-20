@@ -193,11 +193,15 @@ else if (hasAggro && dist > attackDistance)
         transform.rotation = Quaternion.Slerp(transform.rotation, look, Time.deltaTime * 8f);
     }
 
-    public void TakeAggro()
-    {
-        if (!isReturning && !hasAggro)
-            hasAggro = true;
-    }
+ public void TakeAggro()
+ {
+     if (!isReturning && !hasAggro)
+     {
+         hasAggro = true;
+
+     }
+ }
+
 
     // chamado pelo AnimationEvent “OnAttackFrame”
     public void OnAttackFrame()

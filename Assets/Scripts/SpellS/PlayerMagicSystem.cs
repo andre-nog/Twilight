@@ -17,8 +17,9 @@ public class PlayerMagicSystem : MonoBehaviour
     private CustomActions  input;
     private NavMeshAgent   agent;
     private Animator       animator;
+    private bool isAutoAttacking = false;
 
-    private Transform      currentAttackTarget;
+    private Transform currentAttackTarget;
     private bool           fireballBusy, mageAttackBusy, teleportBusy, isCasting;
     private float          fireballReadyTime, mageAttackReadyTime, teleportReadyTime;
 
@@ -58,26 +59,28 @@ public class PlayerMagicSystem : MonoBehaviour
     //───────────────────────────────────────
     //              FIREBALL
     //───────────────────────────────────────
-    private void TryCastFireball()
-    {
-        if (IsBusy || fireballData == null || fireballPrefab == null) return;
-        if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
+private void TryCastFireball()
+{
+    if (IsBusy || fireballData == null || fireballPrefab == null) return;
+    if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
 
-        playerStats.CurrentMana -= fireballData.ManaCost;
-        fireballReadyTime       = Time.time + fireballData.Cooldown;
+    isAutoAttacking = false; // ← impede que o AnimationEvent dispare o auto ataque
 
-        StartCoroutine(FireballSpell.Cast(
-            gameObject,
-            castPoint,
-            fireballPrefab,
-            fireballData,
-            animator,
-            agent,
-            busy    => fireballBusy = busy,
-            casting => isCasting    = casting,
-            GetMouseWorldPoint()
-        ));
-    }
+    playerStats.CurrentMana -= fireballData.ManaCost;
+    fireballReadyTime = Time.time + fireballData.Cooldown;
+
+    StartCoroutine(FireballSpell.Cast(
+        gameObject,
+        castPoint,
+        fireballPrefab,
+        fireballData,
+        animator,
+        agent,
+        busy    => fireballBusy = busy,
+        casting => isCasting    = casting,
+        GetMouseWorldPoint()
+    ));
+}
 
     //───────────────────────────────────────
     //              TELEPORT
@@ -105,17 +108,16 @@ public class PlayerMagicSystem : MonoBehaviour
     //───────────────────────────────────────
     private void TryCastMageAttack()
     {
-        if (IsBusy || mageAttackPrefab == null || currentAttackTarget == null) 
-            return;
+        if (IsBusy || mageAttackPrefab == null || currentAttackTarget == null) return;
 
         float cd = 1f / playerStats.FinalAttackSpeed;
-        if (Time.time < mageAttackReadyTime) 
-            return;
+        if (Time.time < mageAttackReadyTime) return;
 
-        // Trigger de animação
         animator.SetFloat("AttackSpeed", playerStats.FinalAttackSpeed);
         animator.ResetTrigger("AttackTrigger");
         animator.SetTrigger("AttackTrigger");
+
+        isAutoAttacking = true; // ← marca que é auto ataque
 
         mageAttackReadyTime = Time.time + cd;
 
@@ -128,8 +130,8 @@ public class PlayerMagicSystem : MonoBehaviour
             playerStats.AutoAttackRange,
             animator,
             agent,
-            busy    => mageAttackBusy = busy,
-            casting => isCasting      = casting,
+            busy => mageAttackBusy = busy,
+            casting => isCasting = casting,
             currentAttackTarget
         ));
     }
@@ -157,27 +159,31 @@ public class PlayerMagicSystem : MonoBehaviour
     /// Chamado via AnimationEvent na key-frame do ataque.
     /// Instancia o projétil usando stats do PlayerStats.
     /// </summary>
-    public void OnAttackFrame()
+public void OnAttackFrame()
+{
+    // só dispara se o ataque atual for realmente o auto-attack
+    if (!isAutoAttacking) return;
+    isAutoAttacking = false;                       // limpa a flag logo depois
+
+    if (mageAttackPrefab == null || currentAttackTarget == null) 
+        return;
+
+    Vector3 aim = currentAttackTarget.position + Vector3.up * 0.5f;
+    Vector3 dir = (aim - castPoint.position).normalized;
+    Quaternion rot = Quaternion.LookRotation(dir);
+
+    var proj = Instantiate(mageAttackPrefab, castPoint.position, rot);
+    if (proj.TryGetComponent<MageAttack_Script>(out var script))
     {
-        if (mageAttackPrefab == null || currentAttackTarget == null) 
-            return;
-
-        Vector3 aim = currentAttackTarget.position + Vector3.up * 0.5f;
-        Vector3 dir = (aim - castPoint.position).normalized;
-        Quaternion rot = Quaternion.LookRotation(dir);
-
-        var proj = Instantiate(mageAttackPrefab, castPoint.position, rot);
-        if (proj.TryGetComponent<MageAttack_Script>(out var script))
-        {
-            script.Init(
-                playerStats.FinalAttackDamage,
-                playerStats.AutoAttackProjectileSpeed,
-                playerStats.AutoAttackRange,
-                gameObject,
-                currentAttackTarget
-            );
-        }
+        script.Init(
+            playerStats.FinalAttackDamage,
+            playerStats.AutoAttackProjectileSpeed,
+            playerStats.AutoAttackRange,
+            gameObject,
+            currentAttackTarget
+        );
     }
+}
 
     public bool CanCastMageAttack =>
         !IsBusy &&

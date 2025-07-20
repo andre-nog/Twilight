@@ -1,25 +1,23 @@
-// EnemyController.cs
+// Assets/Scripts/Enemy/EnemyController.cs
+
 using UnityEngine;
 
 [AddComponentMenu("Enemy/Controller")]
 public class EnemyController : MonoBehaviour
 {
-    private EnemySpellCast spell;
+    private EnemyDetectionAndAttack attackModule;
 
-    void Awake()
+    private void Awake()
     {
         Transform player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        Vector3 origin = transform.position;
+        Vector3 origin   = transform.position;
 
-        var attack = GetComponent<EnemyDetectionAndAttack>();
-        spell = GetComponent<EnemySpellCast>();
+        attackModule = GetComponent<EnemyDetectionAndAttack>();
+        if (attackModule != null)
+            attackModule.Init(player, origin);
 
-        attack?.Init(player, origin);
-        spell?.Init(player);
+        // Não precisamos mais chamar Init ou Tick do EnemySpellCast aqui.
     }
 
-    void Update()
-    {
-        spell?.Tick();
-    }
+    // Remova totalmente o Update() deste arquivo
 }

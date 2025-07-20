@@ -5144,7 +5144,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22dfd75301343414aab724e37e8c7760, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 10
+  maxHealth: 20
   healthbarPrefab: {fileID: 8108837965831734981, guid: 3ae8d2aed8005cb46b2d7180ec052ea8, type: 3}
   healthbarOffset: {x: 0, y: 2.2, z: 0}
 --- !u!114 &5619065066619314252
@@ -5159,14 +5159,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2b0cabb0542d694999d5cd2840f731b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxMana: 100
-  currentMana: 100
-  manaRechargeRate: 2
   castPoint: {fileID: 1147224725}
   fireballPrefab: {fileID: 6873838601870300864, guid: 9ca90231e37db9949979e3b89e90aa78, type: 3}
   fireballData: {fileID: 11400000, guid: 6490657e733099640be41bf3e638e7f5, type: 2}
   mageAttackPrefab: {fileID: 6873838601870300864, guid: c05220c368c75a145b9475cae0481184, type: 3}
-  mageAttackData: {fileID: 11400000, guid: f08c8eb1bd63f8e48acce671378c59e1, type: 2}
   teleportData: {fileID: 11400000, guid: a9b46bbc436e65b4188dfb1ebd6b4b97, type: 2}
   playerStats: {fileID: 11400000, guid: 96cf9eaaf5c59634580cd54d0653c826, type: 2}
 --- !u!114 &5619065066619314253

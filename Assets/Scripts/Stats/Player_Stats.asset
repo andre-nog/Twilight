@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: Player_Stats
   m_EditorClassIdentifier: 
   AttackDamage: 3
-  AttackSpeed: 0.73
-  Level: 2
-  Experience: 25
+  AttackSpeed: 0.7
+  Level: 6
+  Experience: 125
   Strength: 10
   Intelligence: 10
   Agility: 10
   MaxMana: 100
-  CurrentMana: 100
+  CurrentMana: 65.73653
   ManaRechargeRate: 2
   AutoAttackRange: 6
   AutoAttackProjectileSpeed: 10

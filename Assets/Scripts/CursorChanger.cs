@@ -39,13 +39,11 @@ public class CursorChanger : MonoBehaviour
         // Troca de cursor ao entrar/sair do hover
         if (isNowHovering && !isHoveringEnemy)
         {
-            Debug.Log("CursorChanger: Entered enemy hover — setting red circle cursor");
             Cursor.SetCursor(redCircleCursor, hotspot, CursorMode.Auto);
             isHoveringEnemy = true;
         }
         else if (!isNowHovering && isHoveringEnemy)
         {
-            Debug.Log("CursorChanger: Exited enemy hover — resetting to default cursor");
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             isHoveringEnemy = false;
         }

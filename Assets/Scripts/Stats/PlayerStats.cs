@@ -36,6 +36,6 @@ public class PlayerStats : ScriptableObject
     // -------------------------------------
     public int   ExperienceToNextLevel => Mathf.FloorToInt(25 * Level);
     public float FinalAttackDamage    => AttackDamage * (1 + Intelligence * 0.05f);
-    public float FinalAttackSpeed     => AttackSpeed  * (1 + Agility      * 0.02f);
+    public float FinalAttackSpeed     => AttackSpeed  * (1);
 
 }
