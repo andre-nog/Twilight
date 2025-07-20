@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DamageAmount: 1
   CastDelay: 0
-  TimeUntilFirstCast: 5
-  Cooldown: 10
+  TimeUntilFirstCast: 1
+  Cooldown: 3
   Speed: 10
   Range: 10

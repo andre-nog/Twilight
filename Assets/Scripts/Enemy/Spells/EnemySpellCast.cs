@@ -6,30 +6,33 @@ using System.Collections;
 public class EnemySpellCast : MonoBehaviour
 {
     [Header("Skill de Projétil")]
-    [SerializeField] private GameObject           spellPrefab;
+    [SerializeField] private GameObject spellPrefab;
     [SerializeField] private EnemyProjectileSpell spellData;
-    [SerializeField] private Transform            castPoint;
+    [SerializeField] private Transform castPoint;
 
     [Header("Alerta Visual")]
-    [SerializeField] private GameObject           alertPrefab;
+    [SerializeField] private GameObject alertPrefab;
     private GameObject currentAlert;
 
+    // Posição do alerta em relação ao inimigo (ajuste X, Y, Z aqui)
+    private readonly Vector3 alertOffset = new Vector3(0.28f, 2.2f, 0f);
+
     private EnemyDetectionAndAttack attackModule;
-    private EnemyState              enemyState;
-    private NavMeshAgent            agent;
-    private Animator                animator;
-    private Transform               target;
+    private EnemyState enemyState;
+    private NavMeshAgent agent;
+    private Animator animator;
+    private Transform target;
 
     private Coroutine castLoop;
-    private float     timeUntilNextCast = -1f;  // -1 = aguardando aggro
-    private bool      lastAggroState    = true; // evita trigger no frame 0
+    private float timeUntilNextCast = -1f;
+    private bool lastAggroState = true;
 
     private void Awake()
     {
-        target       = GameObject.FindGameObjectWithTag("Player")?.transform;
-        animator     = GetComponent<Animator>();
-        agent        = GetComponent<NavMeshAgent>();
-        enemyState   = GetComponent<EnemyState>();
+        target = GameObject.FindGameObjectWithTag("Player")?.transform;
+        animator = GetComponent<Animator>();
+        agent = GetComponent<NavMeshAgent>();
+        enemyState = GetComponent<EnemyState>();
         attackModule = GetComponent<EnemyDetectionAndAttack>();
     }
 
@@ -40,15 +43,14 @@ public class EnemySpellCast : MonoBehaviour
         bool hasAggroNow = attackModule.HasAggro;
 
         if (hasAggroNow && !lastAggroState)
-        {
             RestartCastLoop(spellData.TimeUntilFirstCast);
-        }
         else if (!hasAggroNow && lastAggroState)
-        {
             StopCastLoop();
-        }
 
         lastAggroState = hasAggroNow;
+
+        if (currentAlert != null && Camera.main != null)
+            currentAlert.transform.LookAt(Camera.main.transform);
     }
 
     private void RestartCastLoop(float initialDelay)
@@ -66,7 +68,10 @@ public class EnemySpellCast : MonoBehaviour
         timeUntilNextCast = -1f;
 
         if (currentAlert != null)
+        {
             Destroy(currentAlert);
+            currentAlert = null;
+        }
     }
 
     private IEnumerator CastLoop(float initialDelay)
@@ -75,21 +80,20 @@ public class EnemySpellCast : MonoBehaviour
 
         while (attackModule != null && attackModule.HasAggro)
         {
-            // espera até o próximo cast
             while (timeUntilNextCast > 0f)
             {
                 timeUntilNextCast -= Time.deltaTime;
 
-                // mostra alerta 1s antes
+                // alerta 1s antes do cast
                 if (timeUntilNextCast <= 1f && currentAlert == null && alertPrefab != null)
                 {
-                    currentAlert = Instantiate(alertPrefab, transform.position + Vector3.up * 2f, Quaternion.identity, transform);
+                    Vector3 alertPosition = transform.position + alertOffset;
+                    currentAlert = Instantiate(alertPrefab, alertPosition, Quaternion.identity, transform);
                 }
 
                 yield return null;
             }
 
-            // dispara a animação
             animator.SetTrigger("SpellTrigger");
 
             if (currentAlert != null)

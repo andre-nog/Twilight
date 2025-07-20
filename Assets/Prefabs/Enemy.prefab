@@ -2659,7 +2659,7 @@ MonoBehaviour:
   spellPrefab: {fileID: 6873838601870300864, guid: 228b6418008c0e74d906fe135306e7cd, type: 3}
   spellData: {fileID: 11400000, guid: 442801fdce3db2747af6487ecc8c7143, type: 2}
   castPoint: {fileID: 94086179477589229}
-  alertPrefab: {fileID: 8258161900636835671, guid: 1867c5cc23de3fe4d81ed56cb0dd12f7, type: 3}
+  alertPrefab: {fileID: 3129595181548140314, guid: d6ef0cb12ebd1b144b7b035fc5215ac3, type: 3}
 --- !u!1 &7601477575129498072
 GameObject:
   m_ObjectHideFlags: 0
