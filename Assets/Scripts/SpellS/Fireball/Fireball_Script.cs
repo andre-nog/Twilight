@@ -1,68 +1,68 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class Fireball_Script : MonoBehaviour
 {
-    public ProjectileSpell SpellToCast;   // dados do feitiço
-    public GameObject            Caster;        // quem lançou (para não causar dano nele)
+    public ProjectileSpell SpellToCast;
+    public GameObject Caster;
 
     private SphereCollider myCollider;
-    private Rigidbody      myRigidbody;
-    private bool           hasHit = false;
+    private Rigidbody myRigidbody;
+    private Vector3 startPosition;
+    private HashSet<GameObject> alreadyHit = new HashSet<GameObject>();
 
-    /*──────────── Setup ────────────*/
     void Awake()
     {
-        myCollider           = GetComponent<SphereCollider>();
+        myCollider = GetComponent<SphereCollider>();
         myCollider.isTrigger = true;
 
-        myRigidbody          = GetComponent<Rigidbody>();
-        myRigidbody.isKinematic = true;        // sem gravidade / forças
+        myRigidbody = GetComponent<Rigidbody>();
+        myRigidbody.isKinematic = true;
     }
 
-    /// <summary>
-    /// Deve ser chamado logo após Instantiate.
-    /// Ajusta raio, lifetime e registra quem lançou.
-    /// </summary>
-public void Init(ProjectileSpell data, GameObject caster)
-{
-    SpellToCast = data;
-    Caster      = caster;
+    public void Init(ProjectileSpell data, GameObject caster)
+    {
+        SpellToCast = data;
+        Caster = caster;
 
-    // Ignora colisão entre a spell e quem lançou
-    foreach (var myCol in GetComponentsInChildren<Collider>())
-    foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
-        Physics.IgnoreCollision(myCol, casterCol, true);
-  myCollider.radius = SpellToCast.SpellRadius;
-    Destroy(gameObject, SpellToCast.Lifetime);
-}
+        foreach (var myCol in GetComponentsInChildren<Collider>())
+        foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
+            Physics.IgnoreCollision(myCol, casterCol, true);
 
+        myCollider.radius = SpellToCast.SpellRadius;
+        startPosition = transform.position;
+    }
 
-    /*──────────── Movimento ────────────*/
     void Update()
     {
-        if (SpellToCast == null) return;       // segurança
+        if (SpellToCast == null) return;
 
         if (SpellToCast.Speed > 0)
         {
             transform.Translate(
                 transform.forward * SpellToCast.Speed * Time.deltaTime,
-                Space.World);
+                Space.World
+            );
+        }
+
+        float traveled = Vector3.Distance(startPosition, transform.position);
+        if (traveled >= SpellToCast.Range)
+        {
+            Destroy(gameObject);
         }
     }
 
-    /*──────────── Colisão / Dano ────────────*/
     private void OnTriggerEnter(Collider other)
     {
-        if (hasHit || other.gameObject == Caster) return;
-        
+        if (other.gameObject == Caster) return;
+        if (alreadyHit.Contains(other.gameObject)) return;
 
         // Inimigos
         Actor actor = other.GetComponentInParent<Actor>();
         if (actor != null)
         {
-            hasHit = true;
+            alreadyHit.Add(other.gameObject);
             actor.TakeDamage((int)SpellToCast.DamageAmount);
-            Destroy(gameObject);
             return;
         }
 
@@ -70,9 +70,8 @@ public void Init(ProjectileSpell data, GameObject caster)
         PlayerActor playerActor = other.GetComponentInParent<PlayerActor>();
         if (playerActor != null)
         {
-            hasHit = true;
+            alreadyHit.Add(other.gameObject);
             playerActor.TakeDamage((int)SpellToCast.DamageAmount);
-            Destroy(gameObject);
         }
     }
 }

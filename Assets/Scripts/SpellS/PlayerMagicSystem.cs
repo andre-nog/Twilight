@@ -7,43 +7,43 @@ using UnityEngine.AI;
 public class PlayerMagicSystem : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform       castPoint;
-    [SerializeField] private GameObject      fireballPrefab;
+    [SerializeField] private Transform castPoint;
+    [SerializeField] private GameObject fireballPrefab;
     [SerializeField] private ProjectileSpell fireballData;
-    [SerializeField] private GameObject      mageAttackPrefab;
-    [SerializeField] private TeleportSpell   teleportData;
-    [SerializeField] public  PlayerStats     playerStats;
+    [SerializeField] private GameObject mageAttackPrefab;
+    [SerializeField] private TeleportSpell teleportData;
+    [SerializeField] public PlayerStats playerStats;
 
-    private CustomActions  input;
-    private NavMeshAgent   agent;
-    private Animator       animator;
+    private CustomActions input;
+    private NavMeshAgent agent;
+    private Animator animator;
     private bool isAutoAttacking = false;
 
     private Transform currentAttackTarget;
-    private bool           fireballBusy, mageAttackBusy, teleportBusy, isCasting;
-    private float          fireballReadyTime, mageAttackReadyTime, teleportReadyTime;
+    private bool fireballBusy, mageAttackBusy, teleportBusy, isCasting;
+    public float fireballReadyTime, mageAttackReadyTime, teleportReadyTime;
 
-    public bool IsBusy    => fireballBusy || mageAttackBusy || teleportBusy;
+    public bool IsBusy => fireballBusy || mageAttackBusy || teleportBusy;
     public bool IsCasting => isCasting;
 
     private void Awake()
     {
-        input    = new CustomActions();
-        agent    = GetComponent<NavMeshAgent>();
+        input = new CustomActions();
+        agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
     }
 
     private void OnEnable()
     {
         input.Main.SpellCast.performed += _ => TryCastFireball();
-        input.Main.Teleport .performed += _ => TryTeleport();
+        input.Main.Teleport.performed += _ => TryTeleport();
         input.Enable();
     }
 
     private void OnDisable()
     {
         input.Main.SpellCast.performed -= _ => TryCastFireball();
-        input.Main.Teleport .performed -= _ => TryTeleport();
+        input.Main.Teleport.performed -= _ => TryTeleport();
         input.Disable();
     }
 
@@ -59,28 +59,28 @@ public class PlayerMagicSystem : MonoBehaviour
     //───────────────────────────────────────
     //              FIREBALL
     //───────────────────────────────────────
-private void TryCastFireball()
-{
-    if (IsBusy || fireballData == null || fireballPrefab == null) return;
-    if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
+    private void TryCastFireball()
+    {
+        if (IsBusy || fireballData == null || fireballPrefab == null) return;
+        if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
 
-    isAutoAttacking = false; // ← impede que o AnimationEvent dispare o auto ataque
+        isAutoAttacking = false; // ← impede que o AnimationEvent dispare o auto ataque
 
-    playerStats.CurrentMana -= fireballData.ManaCost;
-    fireballReadyTime = Time.time + fireballData.Cooldown;
+        playerStats.CurrentMana -= fireballData.ManaCost;
+        fireballReadyTime = Time.time + fireballData.Cooldown;
 
-    StartCoroutine(FireballSpell.Cast(
-        gameObject,
-        castPoint,
-        fireballPrefab,
-        fireballData,
-        animator,
-        agent,
-        busy    => fireballBusy = busy,
-        casting => isCasting    = casting,
-        GetMouseWorldPoint()
-    ));
-}
+        StartCoroutine(FireballSpell.Cast(
+            gameObject,
+            castPoint,
+            fireballPrefab,
+            fireballData,
+            animator,
+            agent,
+            busy => fireballBusy = busy,
+            casting => isCasting = casting,
+            GetMouseWorldPoint()
+        ));
+    }
 
     //───────────────────────────────────────
     //              TELEPORT
@@ -91,7 +91,7 @@ private void TryCastFireball()
         if (playerStats.CurrentMana < teleportData.ManaCost || Time.time < teleportReadyTime) return;
 
         playerStats.CurrentMana -= teleportData.ManaCost;
-        teleportReadyTime        = Time.time + teleportData.Cooldown;
+        teleportReadyTime = Time.time + teleportData.Cooldown;
 
         teleportBusy = true;
         StartCoroutine(TeleportSpellExecutor.Cast(
@@ -159,31 +159,31 @@ private void TryCastFireball()
     /// Chamado via AnimationEvent na key-frame do ataque.
     /// Instancia o projétil usando stats do PlayerStats.
     /// </summary>
-public void OnAttackFrame()
-{
-    // só dispara se o ataque atual for realmente o auto-attack
-    if (!isAutoAttacking) return;
-    isAutoAttacking = false;                       // limpa a flag logo depois
-
-    if (mageAttackPrefab == null || currentAttackTarget == null) 
-        return;
-
-    Vector3 aim = currentAttackTarget.position + Vector3.up * 0.5f;
-    Vector3 dir = (aim - castPoint.position).normalized;
-    Quaternion rot = Quaternion.LookRotation(dir);
-
-    var proj = Instantiate(mageAttackPrefab, castPoint.position, rot);
-    if (proj.TryGetComponent<MageAttack_Script>(out var script))
+    public void OnAttackFrame()
     {
-        script.Init(
-            playerStats.FinalAttackDamage,
-            playerStats.AutoAttackProjectileSpeed,
-            playerStats.AutoAttackRange,
-            gameObject,
-            currentAttackTarget
-        );
+        // só dispara se o ataque atual for realmente o auto-attack
+        if (!isAutoAttacking) return;
+        isAutoAttacking = false;                       // limpa a flag logo depois
+
+        if (mageAttackPrefab == null || currentAttackTarget == null)
+            return;
+
+        Vector3 aim = currentAttackTarget.position + Vector3.up * 0.5f;
+        Vector3 dir = (aim - castPoint.position).normalized;
+        Quaternion rot = Quaternion.LookRotation(dir);
+
+        var proj = Instantiate(mageAttackPrefab, castPoint.position, rot);
+        if (proj.TryGetComponent<MageAttack_Script>(out var script))
+        {
+            script.Init(
+                playerStats.FinalAttackDamage,
+                playerStats.AutoAttackProjectileSpeed,
+                playerStats.AutoAttackRange,
+                gameObject,
+                currentAttackTarget
+            );
+        }
     }
-}
 
     public bool CanCastMageAttack =>
         !IsBusy &&
@@ -202,5 +202,8 @@ public void OnAttackFrame()
     }
 
     public Vector3 MouseWorldPoint => GetMouseWorldPoint();
-    public PlayerStats GetPlayerStats()    => playerStats;
+    public PlayerStats GetPlayerStats() => playerStats;
+    
+    public float FireballReadyTime => fireballReadyTime;
+public float TeleportReadyTime => teleportReadyTime;
 }

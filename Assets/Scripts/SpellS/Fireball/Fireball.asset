@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Fireball
   m_EditorClassIdentifier: 
   DamageAmount: 10
-  ManaCost: 0
+  ManaCost: 10
   CastDelay: 0
-  Cooldown: 1
+  Cooldown: 5
   Lifetime: 1
   Speed: 10
   SpellRadius: 0.5
-  Range: 6
+  Range: 8

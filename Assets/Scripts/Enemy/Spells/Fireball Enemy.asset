@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ed10c796cb6d6f4090eb141498ed932, type: 3}
   m_Name: Fireball Enemy
   m_EditorClassIdentifier: 
-  DamageAmount: 1
+  DamageAmount: 3
   CastDelay: 0
-  TimeUntilFirstCast: 1
-  Cooldown: 3
+  TimeUntilFirstCast: 4
+  Cooldown: 8
   Speed: 10
   Range: 10

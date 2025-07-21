@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class FireballEnemy_Script : MonoBehaviour
 {
@@ -7,7 +8,8 @@ public class FireballEnemy_Script : MonoBehaviour
 
     private SphereCollider myCollider;
     private Rigidbody myRigidbody;
-    private bool hasHit = false;
+    private Vector3 startPosition;
+    private HashSet<GameObject> alreadyHit = new HashSet<GameObject>();
 
     void Awake()
     {
@@ -26,6 +28,8 @@ public class FireballEnemy_Script : MonoBehaviour
         foreach (var myCol in GetComponentsInChildren<Collider>())
         foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
             Physics.IgnoreCollision(myCol, casterCol, true);
+
+        startPosition = transform.position;
     }
 
     void Update()
@@ -39,9 +43,8 @@ public class FireballEnemy_Script : MonoBehaviour
                 Space.World);
         }
 
-        // Destruir manualmente após ultrapassar o alcance
-        float maxDistance = SpellData.Range;
-        if (Vector3.Distance(transform.position, Caster.transform.position) > maxDistance)
+        float traveled = Vector3.Distance(startPosition, transform.position);
+        if (traveled >= SpellData.Range)
         {
             Destroy(gameObject);
         }
@@ -49,24 +52,14 @@ public class FireballEnemy_Script : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (hasHit || other.gameObject == Caster) return;
+        if (other.gameObject == Caster) return;
+        if (alreadyHit.Contains(other.gameObject)) return;
 
-        // Jogador
-        PlayerActor playerActor = other.GetComponentInParent<PlayerActor>();
-        if (playerActor != null)
+        PlayerActor player = other.GetComponentInParent<PlayerActor>();
+        if (player != null)
         {
-            hasHit = true;
-            playerActor.TakeDamage((int)SpellData.DamageAmount);
-            Destroy(gameObject);
-        }
-
-        // (opcional) Outros inimigos
-        Actor actor = other.GetComponentInParent<Actor>();
-        if (actor != null)
-        {
-            hasHit = true;
-            actor.TakeDamage((int)SpellData.DamageAmount);
-            Destroy(gameObject);
+            alreadyHit.Add(other.gameObject);
+            player.TakeDamage((int)SpellData.DamageAmount);
         }
     }
 }

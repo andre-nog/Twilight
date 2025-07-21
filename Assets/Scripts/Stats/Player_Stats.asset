@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AttackDamage: 3
   AttackSpeed: 0.7
-  Level: 6
-  Experience: 125
+  Level: 1
+  Experience: 0
   Strength: 10
   Intelligence: 10
   Agility: 10
   MaxMana: 100
-  CurrentMana: 65.73653
-  ManaRechargeRate: 2
+  CurrentMana: 14.124256
+  ManaRechargeRate: 5
   AutoAttackRange: 6
   AutoAttackProjectileSpeed: 10
