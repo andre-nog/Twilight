@@ -57,21 +57,27 @@ public class Fireball_Script : MonoBehaviour
         if (other.gameObject == Caster) return;
         if (alreadyHit.Contains(other.gameObject)) return;
 
-        // Inimigos
-        Actor actor = other.GetComponentInParent<Actor>();
+        var stats = Caster.GetComponent<PlayerMagicSystem>()?.GetPlayerStats();
+        float dmg = DamageCalculator.CalculateFireballDamage(SpellToCast.DamageAmount, stats);
+        int finalDmg = Mathf.RoundToInt(dmg);
+
+
+
+        // Inimigo comum
+        var actor = other.GetComponentInParent<Actor>();
         if (actor != null)
         {
             alreadyHit.Add(other.gameObject);
-            actor.TakeDamage((int)SpellToCast.DamageAmount);
+            actor.TakeDamage(finalDmg);
             return;
         }
 
-        // Jogador
-        PlayerActor playerActor = other.GetComponentInParent<PlayerActor>();
+        // Jogador (ex: PvP)
+        var playerActor = other.GetComponentInParent<PlayerActor>();
         if (playerActor != null)
         {
             alreadyHit.Add(other.gameObject);
-            playerActor.TakeDamage((int)SpellToCast.DamageAmount);
+            playerActor.TakeDamage(finalDmg);
         }
     }
 }

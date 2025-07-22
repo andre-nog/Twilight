@@ -24,6 +24,11 @@ public class PlayerStats : ScriptableObject
     public float CurrentMana;
     public float ManaRechargeRate;
 
+    [Header("Vida")]
+    public float MaxHealth;
+
+    public float CurrentHealth;
+
     // -------------------------------------
     // Auto-Attack (substitui MageAttackSpell)
     // -------------------------------------
@@ -34,8 +39,8 @@ public class PlayerStats : ScriptableObject
     // -------------------------------------
     // Derived Stats (Editor)
     // -------------------------------------
-    public int   ExperienceToNextLevel => Mathf.FloorToInt(25 * Level);
-    public float FinalAttackDamage    => AttackDamage * (1 + Intelligence * 0.05f);
+    public int   ExperienceToNextLevel => Mathf.FloorToInt(50 * Level);
+    public float FinalAttackDamage => AttackDamage + Intelligence * 0.10f;
     public float FinalAttackSpeed     => AttackSpeed  * (1);
 
 }

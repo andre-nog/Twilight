@@ -203,7 +203,15 @@ public class PlayerMagicSystem : MonoBehaviour
 
     public Vector3 MouseWorldPoint => GetMouseWorldPoint();
     public PlayerStats GetPlayerStats() => playerStats;
-    
+
     public float FireballReadyTime => fireballReadyTime;
-public float TeleportReadyTime => teleportReadyTime;
+    public float TeleportReadyTime => teleportReadyTime;
+
+    public void ResetCastingState()
+    {
+        fireballBusy = false;
+        mageAttackBusy = false;
+        teleportBusy = false;
+        isCasting = false;
+    }
 }

@@ -9,12 +9,12 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Ignore Collision
   - Water
   - UI
   - Enemy
   - Player
-  - 
+  - Fireball
   - 
   - 
   - 

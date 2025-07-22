@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ManaCost: 10
   CastDelay: 0
-  Cooldown: 7
+  Cooldown: 12
   Range: 6

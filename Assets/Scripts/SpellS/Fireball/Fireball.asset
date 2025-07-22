@@ -15,7 +15,7 @@ MonoBehaviour:
   DamageAmount: 10
   ManaCost: 10
   CastDelay: 0
-  Cooldown: 5
+  Cooldown: 10
   Lifetime: 1
   Speed: 10
   SpellRadius: 0.5

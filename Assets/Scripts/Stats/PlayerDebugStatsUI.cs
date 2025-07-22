@@ -16,10 +16,12 @@ public class PlayerDebugStatsUI : MonoBehaviour
         float qCooldown = Mathf.Max(0f, magicSystem.FireballReadyTime - time);
         float eCooldown = Mathf.Max(0f, magicSystem.TeleportReadyTime - time);
 
-        textUI.text = $@"
+textUI.text = $@"
+<color=#FFDD88><b>HP:</b></color> {playerStats.CurrentHealth:F0} / {playerStats.MaxHealth:F0}
+<color=#4488FF><b>Mana:</b></color> {playerStats.CurrentMana:F0} / {playerStats.MaxMana:F0}
+
 <color=#FF4444><b>Final ATK:</b></color> {playerStats.FinalAttackDamage:F2}
 <color=#FF8844><b>Final Speed:</b></color> {playerStats.FinalAttackSpeed:F2}
-<color=#4488FF><b>Mana:</b></color> {playerStats.CurrentMana:F0} / {playerStats.MaxMana:F0}
 <color=#44BBFF><b>Regen:</b></color> {playerStats.ManaRechargeRate:F2}/s
 
 <color=#AAFFAA><b>Cooldown Q:</b></color> {qCooldown:F1}s

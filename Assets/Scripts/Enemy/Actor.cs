@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class Actor : MonoBehaviour
 {
@@ -7,9 +8,9 @@ public class Actor : MonoBehaviour
     [SerializeField] private Vector3 healthbarOffset = new Vector3(0, 2.5f, 0);
     [SerializeField] private int experienceReward = 25;
 
-
     private Healthbar healthbar;
     private float currentHealth;
+    private Vector3 initialPosition;
 
     public float CurrentHealth
     {
@@ -17,15 +18,17 @@ public class Actor : MonoBehaviour
         private set => currentHealth = value;
     }
 
+    public float MaxHealth => maxHealth;
+
     private void Start()
     {
+        initialPosition = transform.position;
         currentHealth = maxHealth;
 
         if (healthbarPrefab != null)
         {
             GameObject barInstance = Instantiate(healthbarPrefab, transform);
             barInstance.transform.localPosition = healthbarOffset;
-
             healthbar = barInstance.GetComponentInChildren<Healthbar>();
         }
         else
@@ -34,9 +37,7 @@ public class Actor : MonoBehaviour
         }
 
         if (healthbar != null)
-        {
             healthbar.UpdateHealth(currentHealth, maxHealth);
-        }
     }
 
     public void TakeDamage(int amount)
@@ -44,34 +45,73 @@ public class Actor : MonoBehaviour
         CurrentHealth -= amount;
         CurrentHealth = Mathf.Max(CurrentHealth, 0);
 
-        // Chama qualquer sistema que implemente IAggroReceiver (ex: EnemyDetectionAndAttack)
         IAggroReceiver aggroReceiver = GetComponent<IAggroReceiver>();
         aggroReceiver?.TakeAggro();
 
         if (healthbar != null)
-        {
             healthbar.UpdateHealth(CurrentHealth, maxHealth);
-        }
 
         Debug.Log($"{gameObject.name} recebeu {amount} de dano. HP restante: {CurrentHealth}");
 
         if (CurrentHealth <= 0)
-        {
             Die();
-        }
     }
 
     private void Die()
     {
-        // Dá XP ao jogador
-        PlayerXP playerXP = FindFirstObjectByType<PlayerXP>();
-        if (playerXP != null)
+        if (TryGetComponent<EnemyDetectionAndAttack>(out var enemy))
         {
-            playerXP.GainXP(experienceReward);
+            Debug.Log($"[Enemy] {gameObject.name} morreu. Respawn em 60 segundos.");
+
+            // ✅ Concede XP ao player antes de iniciar respawn
+            PlayerXP playerXP = FindFirstObjectByType<PlayerXP>();
+            if (playerXP != null)
+            {
+                playerXP.GainXP(experienceReward);
+            }
+
+            // ✅ Limpa alvo do player se estiver atacando este inimigo
+            var controller = FindFirstObjectByType<PlayerController>();
+            if (controller != null && controller.CurrentTarget != null &&
+                controller.CurrentTarget.transform == transform)
+            {
+                controller.ClearTarget();
+            }
+
+            if (EnemyRespawnManager.Instance != null)
+            {
+                EnemyRespawnManager.Instance.ScheduleRespawn(gameObject, initialPosition, 5f);
+            }
+
+            return;
         }
 
-        Debug.Log($"[Enemy] {gameObject.name} morreu e deu {experienceReward} XP!");
+        // (mantém essa parte para outros tipos de Actor, se houver)
+        PlayerXP fallbackXP = FindFirstObjectByType<PlayerXP>();
+        if (fallbackXP != null)
+        {
+            fallbackXP.GainXP(experienceReward);
+        }
+
+        Debug.Log($"[Actor] {gameObject.name} morreu e deu {experienceReward} XP!");
         Destroy(gameObject);
     }
 
+    public void Heal(float amount)
+    {
+        if (CurrentHealth <= 0) return;
+
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, maxHealth);
+        if (healthbar != null)
+            healthbar.UpdateHealth(CurrentHealth, maxHealth);
+    }
+
+    public void HealFull()
+    {
+        // Corrigido: sempre cura totalmente, mesmo se estiver com 0 de vida
+        currentHealth = maxHealth;
+
+        if (healthbar != null)
+            healthbar.UpdateHealth(currentHealth, maxHealth);
+    }
 }

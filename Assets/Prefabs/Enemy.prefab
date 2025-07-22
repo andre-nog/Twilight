@@ -2459,9 +2459,8 @@ GameObject:
   - component: {fileID: 1110505453308370340}
   - component: {fileID: 7439705447790429379}
   - component: {fileID: 8461365499999071489}
-  - component: {fileID: 2577617854756387470}
-  - component: {fileID: 8673328646191415808}
   - component: {fileID: 5947504907562332726}
+  - component: {fileID: 274189558354810551}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Interactable
@@ -2613,37 +2612,6 @@ MonoBehaviour:
   healthbarPrefab: {fileID: 8108837965831734981, guid: 3ae8d2aed8005cb46b2d7180ec052ea8, type: 3}
   healthbarOffset: {x: 0, y: 2, z: 0}
   experienceReward: 25
---- !u!114 &2577617854756387470
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7474672665139633120}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9e9669e5a438704c8557ffa4d49e6ed, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &8673328646191415808
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7474672665139633120}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f45653d26b12e5e43abed1e13393c28d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  detectionRange: 7
-  aggroLoseRange: 30
-  attackDistance: 1.5
-  attackSpeed: 0.8
-  attackDelay: 0.7
-  attackDamage: 1
-  hitEffect: {fileID: 3810448783153749638, guid: 0dcbd71311f14854ca210fe1012717f1, type: 3}
 --- !u!114 &5947504907562332726
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2660,6 +2628,25 @@ MonoBehaviour:
   spellData: {fileID: 11400000, guid: 442801fdce3db2747af6487ecc8c7143, type: 2}
   castPoint: {fileID: 94086179477589229}
   alertPrefab: {fileID: 3129595181548140314, guid: d6ef0cb12ebd1b144b7b035fc5215ac3, type: 3}
+--- !u!114 &274189558354810551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7474672665139633120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66fbefbd2fc029647b35394baf152445, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  detectionRange: 7
+  aggroLoseRange: 20
+  attackDistance: 1.5
+  attackSpeed: 0.6
+  attackDelay: 1.5
+  attackDamage: 2
+  hitEffect: {fileID: 3810448783153749638, guid: 0dcbd71311f14854ca210fe1012717f1, type: 3}
 --- !u!1 &7601477575129498072
 GameObject:
   m_ObjectHideFlags: 0

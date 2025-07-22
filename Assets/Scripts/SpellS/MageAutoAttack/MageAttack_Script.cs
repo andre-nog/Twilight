@@ -50,34 +50,44 @@ public class MageAttack_Script : MonoBehaviour
 
     void Update()
     {
-        // homing: persegue o Transform enquanto existir
-        if (homingTarget != null)
+        if (homingTarget == null || !homingTarget.gameObject.activeInHierarchy)
         {
-            Vector3 aim = homingTarget.position + Vector3.up * 0.5f;
-            Vector3 dir = (aim - transform.position).normalized;
-            transform.position += dir * speed * Time.deltaTime;
-            transform.forward    = dir;
+            Destroy(gameObject);
+            return;
+        }
+
+        Vector3 aim = homingTarget.position + Vector3.up * 0.5f;
+        Vector3 dir = (aim - transform.position).normalized;
+        transform.position += dir * speed * Time.deltaTime;
+        transform.forward = dir;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (hasHit || other.gameObject == caster) return;
+
+        // ✅ Garante que o projétil só cause dano ao homingTarget
+        if (homingTarget == null || !homingTarget.gameObject.activeInHierarchy)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        if (other.transform != homingTarget && other.transform.root != homingTarget) return;
+
+        var actor = other.GetComponentInParent<Actor>();
+        if (actor != null)
+        {
+            ApplyDamage(actor.TakeDamage);
+            return;
+        }
+
+        var pa = other.GetComponentInParent<PlayerActor>();
+        if (pa != null)
+        {
+            ApplyDamage(pa.TakeDamage);
         }
     }
-
-private void OnTriggerEnter(Collider other)
-{
-    if (hasHit || other.gameObject == caster) return;
-
-    // tenta dano em Actor
-    var actor = other.GetComponentInParent<Actor>();
-    if (actor != null)
-    {
-        ApplyDamage(actor.TakeDamage);
-        return;
-    }
-    // tenta dano em PlayerActor
-    var pa = other.GetComponentInParent<PlayerActor>();
-    if (pa != null)
-    {
-        ApplyDamage(pa.TakeDamage);
-    }
-}
 
     private void ApplyDamage(System.Action<int> takeDamage)
     {

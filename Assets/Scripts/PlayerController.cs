@@ -7,24 +7,24 @@ using UnityEngine.AI;
 public class PlayerController : MonoBehaviour
 {
     private CustomActions input;
-    private NavMeshAgent  agent;
-    private Animator      animator;
+    private NavMeshAgent agent;
+    private Animator animator;
     private PlayerMagicSystem magic;
 
     [Header("Movement")]
     [SerializeField] private ParticleSystem clickEffect;
-    [SerializeField] private LayerMask      clickableLayers;
-    [SerializeField] private float          stopTolerance = 0.05f;
+    [SerializeField] private LayerMask clickableLayers;
+    [SerializeField] private float stopTolerance = 0.05f;
 
     private float lookRotationSpeed = 8f;
     private Interactable target;
 
     void Awake()
     {
-        agent    = GetComponent<NavMeshAgent>();
+        agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        input    = new CustomActions();
-        magic    = GetComponent<PlayerMagicSystem>();
+        input = new CustomActions();
+        magic = GetComponent<PlayerMagicSystem>();
     }
 
     void OnEnable()
@@ -76,7 +76,7 @@ public class PlayerController : MonoBehaviour
 
     private void TryMageAttackIfTargetInRange()
     {
-        if (target == null) 
+        if (target == null)
             return;
 
         float attackRange = magic.GetPlayerStats().AutoAttackRange;
@@ -91,7 +91,7 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovementStop()
     {
-        if (target == null) 
+        if (target == null)
             return;
 
         float attackRange = magic.GetPlayerStats().AutoAttackRange;
@@ -152,4 +152,10 @@ public class PlayerController : MonoBehaviour
     }
 
     public Interactable CurrentTarget => target;
+
+    public void ClearTarget()
+    {
+        target = null;
+    }
+
 }

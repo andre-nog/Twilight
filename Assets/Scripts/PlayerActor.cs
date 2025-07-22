@@ -1,60 +1,63 @@
 using UnityEngine;
-using System.Collections;
 
 public class PlayerActor : MonoBehaviour
 {
-    [SerializeField] private float maxHealth = 5f;
+    [SerializeField] private PlayerStats stats;
     [SerializeField] private GameObject healthbarPrefab;
     [SerializeField] private Vector3 healthbarOffset = new Vector3(0, 2.5f, 0);
 
     private Healthbar healthbar;
-    private float currentHealth;
+    private Vector3 initialPosition;
 
-    public float CurrentHealth
-    {
-        get => currentHealth;
-        private set => currentHealth = value;
-    }
+    public float CurrentHealth => stats.CurrentHealth;
+    public PlayerStats Stats => stats; // Getter público seguro
 
     private void Start()
     {
-        currentHealth = maxHealth;
+        initialPosition = transform.position;
+        stats.CurrentHealth = stats.MaxHealth;
 
         if (healthbarPrefab != null)
         {
             GameObject barInstance = Instantiate(healthbarPrefab, transform);
             barInstance.transform.localPosition = healthbarOffset;
-
             healthbar = barInstance.GetComponentInChildren<Healthbar>();
         }
 
         if (healthbar != null)
-        {
-            healthbar.UpdateHealth(currentHealth, maxHealth);
-        }
+            healthbar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth);
     }
-
 
     public void TakeDamage(int amount)
     {
-        currentHealth -= amount;
-        currentHealth = Mathf.Max(currentHealth, 0);
+        stats.CurrentHealth -= amount;
+        stats.CurrentHealth = Mathf.Max(stats.CurrentHealth, 0);
 
         if (healthbar != null)
-        {
-            healthbar.UpdateHealth(currentHealth, maxHealth);
-        }
+            healthbar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth);
 
-        Debug.Log($"[Player] {gameObject.name} recebeu {amount} de dano. HP restante: {currentHealth}");
+        Debug.Log($"[Player] {gameObject.name} recebeu {amount} de dano. HP restante: {stats.CurrentHealth}");
 
-        if (currentHealth <= 0)
-        {
+        if (stats.CurrentHealth <= 0)
             Die();
-        }
+    }
+
+    public void IncreaseMaxHealth(float amount)
+    {
+        stats.MaxHealth += amount;
+        stats.CurrentHealth += amount;
+
+        if (healthbar != null)
+            healthbar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth);
     }
 
     private void Die()
     {
-        Destroy(gameObject);
+        Debug.Log("[Player] Morreu. Fazendo respawn...");
+
+        if (PlayerRespawnManager.Instance != null)
+            PlayerRespawnManager.Instance.RespawnPlayer(this, initialPosition);
+        else
+            Debug.LogError("PlayerRespawnManager não encontrado na cena!");
     }
 }
