@@ -18,3 +18,4 @@ MonoBehaviour:
   Cooldown: 8
   Speed: 10
   Range: 10
+  RandomStartOffset: 2

@@ -3,8 +3,7 @@ using UnityEngine.InputSystem;
 
 public class SkillInputHandler : MonoBehaviour
 {
-    public CooldownSkillUI skillQ;
-    public CooldownSkillUI skillE;
+    public CooldownSkillUI skillE; // Apenas o E continua controlado aqui (opcional)
 
     private CustomActions inputActions;
 
@@ -29,11 +28,8 @@ public class SkillInputHandler : MonoBehaviour
 
     private void OnQPressed(InputAction.CallbackContext context)
     {
-        if (!skillQ.IsOnCooldown())
-        {
-            skillQ.TriggerCooldown();
-            Debug.Log("Skill Q (SpellCast) usada!");
-        }
+        // Fireball (Q) é tratada pelo PlayerMagicSystem (com ou sem smartcast)
+        Debug.Log("Skill Q pressionada – delegando execução ao PlayerMagicSystem.");
     }
 
     private void OnEPressed(InputAction.CallbackContext context)

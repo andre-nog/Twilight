@@ -25,4 +25,9 @@ public class EnemyProjectileSpell : ScriptableObject
     [Header("Movimento / Alcance")]
     public float Speed;
     public float Range;
+
+    [Header("Randomização")]
+    [Tooltip("Variação aleatória aplicada ao tempo inicial do primeiro cast")]
+    [Range(0f, 5f)]
+    public float RandomStartOffset = 0.5f;
 }

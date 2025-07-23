@@ -43,9 +43,14 @@ public class EnemySpellCast : MonoBehaviour
         bool hasAggroNow = attackModule.HasAggro;
 
         if (hasAggroNow && !lastAggroState)
-            RestartCastLoop(spellData.TimeUntilFirstCast);
+        {
+            float offset = Random.Range(-spellData.RandomStartOffset, spellData.RandomStartOffset);
+            RestartCastLoop(spellData.TimeUntilFirstCast + offset);
+        }
         else if (!hasAggroNow && lastAggroState)
+        {
             StopCastLoop();
+        }
 
         lastAggroState = hasAggroNow;
 

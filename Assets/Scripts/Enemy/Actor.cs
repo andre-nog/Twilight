@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using System.Collections;
 
@@ -61,13 +62,20 @@ public class Actor : MonoBehaviour
     {
         if (TryGetComponent<EnemyDetectionAndAttack>(out var enemy))
         {
-            Debug.Log($"[Enemy] {gameObject.name} morreu. Respawn em 60 segundos.");
+            Debug.Log($"[Enemy] {gameObject.name} morreu. Respawn em 45 segundos.");
 
             // ✅ Concede XP ao player antes de iniciar respawn
             PlayerXP playerXP = FindFirstObjectByType<PlayerXP>();
             if (playerXP != null)
             {
                 playerXP.GainXP(experienceReward);
+            }
+
+            // ✅ Notifica o QuestTracker
+            QuestTracker tracker = FindFirstObjectByType<QuestTracker>();
+            if (tracker != null)
+            {
+                tracker.ContarInimigoDerrotado();
             }
 
             // ✅ Limpa alvo do player se estiver atacando este inimigo
@@ -80,7 +88,7 @@ public class Actor : MonoBehaviour
 
             if (EnemyRespawnManager.Instance != null)
             {
-                EnemyRespawnManager.Instance.ScheduleRespawn(gameObject, initialPosition, 5f);
+                EnemyRespawnManager.Instance.ScheduleRespawn(gameObject, initialPosition, 45f);
             }
 
             return;
@@ -91,6 +99,13 @@ public class Actor : MonoBehaviour
         if (fallbackXP != null)
         {
             fallbackXP.GainXP(experienceReward);
+        }
+
+        // ✅ Notifica o QuestTracker (fallback)
+        QuestTracker fallbackTracker = FindFirstObjectByType<QuestTracker>();
+        if (fallbackTracker != null)
+        {
+            fallbackTracker.ContarInimigoDerrotado();
         }
 
         Debug.Log($"[Actor] {gameObject.name} morreu e deu {experienceReward} XP!");

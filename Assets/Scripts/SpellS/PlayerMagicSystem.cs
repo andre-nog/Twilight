@@ -13,6 +13,7 @@ public class PlayerMagicSystem : MonoBehaviour
     [SerializeField] private GameObject mageAttackPrefab;
     [SerializeField] private TeleportSpell teleportData;
     [SerializeField] public PlayerStats playerStats;
+    [SerializeField] private CooldownSkillUI fireballCooldownUI;
 
     private CustomActions input;
     private NavMeshAgent agent;
@@ -35,39 +36,36 @@ public class PlayerMagicSystem : MonoBehaviour
 
     private void OnEnable()
     {
-        input.Main.SpellCast.performed += _ => TryCastFireball();
         input.Main.Teleport.performed += _ => TryTeleport();
         input.Enable();
     }
 
     private void OnDisable()
     {
-        input.Main.SpellCast.performed -= _ => TryCastFireball();
         input.Main.Teleport.performed -= _ => TryTeleport();
         input.Disable();
     }
 
     private void Update()
     {
-        // Regenera mana diretamente no PlayerStats
         playerStats.CurrentMana = Mathf.Min(
             playerStats.CurrentMana + playerStats.ManaRechargeRate * Time.deltaTime,
             playerStats.MaxMana
         );
     }
 
-    //───────────────────────────────────────
-    //              FIREBALL
-    //───────────────────────────────────────
     private void TryCastFireball()
     {
         if (IsBusy || fireballData == null || fireballPrefab == null) return;
         if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
 
-        isAutoAttacking = false; // ← impede que o AnimationEvent dispare o auto ataque
+        isAutoAttacking = false;
 
         playerStats.CurrentMana -= fireballData.ManaCost;
         fireballReadyTime = Time.time + fireballData.Cooldown;
+
+        // Só chama cooldown real se for smartcast
+        fireballCooldownUI?.TriggerCooldown();
 
         StartCoroutine(FireballSpell.Cast(
             gameObject,
@@ -82,9 +80,31 @@ public class PlayerMagicSystem : MonoBehaviour
         ));
     }
 
-    //───────────────────────────────────────
-    //              TELEPORT
-    //───────────────────────────────────────
+    public void TryCastFireballAt(Vector3 aimPoint)
+    {
+        if (IsBusy || fireballData == null || fireballPrefab == null) return;
+        if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
+
+        isAutoAttacking = false;
+
+        playerStats.CurrentMana -= fireballData.ManaCost;
+        fireballReadyTime = Time.time + fireballData.Cooldown;
+
+        fireballCooldownUI?.TriggerCooldown();
+
+        StartCoroutine(FireballSpell.Cast(
+            gameObject,
+            castPoint,
+            fireballPrefab,
+            fireballData,
+            animator,
+            agent,
+            busy => fireballBusy = busy,
+            casting => isCasting = casting,
+            aimPoint
+        ));
+    }
+
     private void TryTeleport()
     {
         if (IsBusy || teleportData == null) return;
@@ -103,9 +123,6 @@ public class PlayerMagicSystem : MonoBehaviour
         ));
     }
 
-    //───────────────────────────────────────
-    //            AUTO-ATTACK
-    //───────────────────────────────────────
     private void TryCastMageAttack()
     {
         if (IsBusy || mageAttackPrefab == null || currentAttackTarget == null) return;
@@ -117,7 +134,7 @@ public class PlayerMagicSystem : MonoBehaviour
         animator.ResetTrigger("AttackTrigger");
         animator.SetTrigger("AttackTrigger");
 
-        isAutoAttacking = true; // ← marca que é auto ataque
+        isAutoAttacking = true;
 
         mageAttackReadyTime = Time.time + cd;
 
@@ -136,18 +153,11 @@ public class PlayerMagicSystem : MonoBehaviour
         ));
     }
 
-    /// <summary>
-    /// Define qual inimigo o auto-attack vai mirar.
-    /// Chamado pelo PlayerController.
-    /// </summary>
     public void SetCurrentAttackTarget(Transform t)
     {
         currentAttackTarget = t;
     }
 
-    /// <summary>
-    /// Exposto para o PlayerController: define o alvo e dispara o auto-attack.
-    /// </summary>
     public void TryCastMageAttackAt(Transform target)
     {
         if (target == null) return;
@@ -155,18 +165,12 @@ public class PlayerMagicSystem : MonoBehaviour
         TryCastMageAttack();
     }
 
-    /// <summary>
-    /// Chamado via AnimationEvent na key-frame do ataque.
-    /// Instancia o projétil usando stats do PlayerStats.
-    /// </summary>
     public void OnAttackFrame()
     {
-        // só dispara se o ataque atual for realmente o auto-attack
         if (!isAutoAttacking) return;
-        isAutoAttacking = false;                       // limpa a flag logo depois
+        isAutoAttacking = false;
 
-        if (mageAttackPrefab == null || currentAttackTarget == null)
-            return;
+        if (mageAttackPrefab == null || currentAttackTarget == null) return;
 
         Vector3 aim = currentAttackTarget.position + Vector3.up * 0.5f;
         Vector3 dir = (aim - castPoint.position).normalized;
@@ -190,9 +194,6 @@ public class PlayerMagicSystem : MonoBehaviour
         mageAttackPrefab != null &&
         Time.time >= mageAttackReadyTime;
 
-    //───────────────────────────────────────
-    //                UTILS
-    //───────────────────────────────────────
     private Vector3 GetMouseWorldPoint()
     {
         var ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
@@ -214,4 +215,7 @@ public class PlayerMagicSystem : MonoBehaviour
         teleportBusy = false;
         isCasting = false;
     }
+
+    public void SetFireballBusy(bool value) => fireballBusy = value;
+    public void SetIsCasting(bool value) => isCasting = value;
 }
