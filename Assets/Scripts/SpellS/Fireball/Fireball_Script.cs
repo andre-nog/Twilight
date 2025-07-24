@@ -3,13 +3,14 @@ using System.Collections.Generic;
 
 public class Fireball_Script : MonoBehaviour
 {
-    public ProjectileSpell SpellToCast;
-    public GameObject Caster;
+    // Agora privados: setados apenas em Init(...)
+    private ProjectileSpell SpellToCast;
+    private GameObject    Caster;
 
-    private SphereCollider myCollider;
-    private Rigidbody myRigidbody;
-    private Vector3 startPosition;
-    private HashSet<GameObject> alreadyHit = new HashSet<GameObject>();
+    private SphereCollider       myCollider;
+    private Rigidbody            myRigidbody;
+    private Vector3              startPosition;
+    private HashSet<GameObject>  alreadyHit = new HashSet<GameObject>();
 
     void Awake()
     {
@@ -20,24 +21,31 @@ public class Fireball_Script : MonoBehaviour
         myRigidbody.isKinematic = true;
     }
 
+    /// <summary>
+    /// Inicializa o projétil com os dados da spell e quem é o caster.
+    /// Deve ser chamado pelo PlayerMagicSystem.
+    /// </summary>
     public void Init(ProjectileSpell data, GameObject caster)
     {
         SpellToCast = data;
-        Caster = caster;
+        Caster      = caster;
 
-        foreach (var myCol in GetComponentsInChildren<Collider>())
+        // Ignora colisão com o caster
+        foreach (var myCol     in GetComponentsInChildren<Collider>())
         foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
             Physics.IgnoreCollision(myCol, casterCol, true);
 
-        myCollider.radius = SpellToCast.SpellRadius;
-        startPosition = transform.position;
+        // Ajusta o raio do trigger conforme a spell
+        myCollider.radius  = SpellToCast.SpellRadius;
+        startPosition      = transform.position;
     }
 
     void Update()
     {
         if (SpellToCast == null) return;
 
-        if (SpellToCast.Speed > 0)
+        // Move o projétil à frente
+        if (SpellToCast.Speed > 0f)
         {
             transform.Translate(
                 transform.forward * SpellToCast.Speed * Time.deltaTime,
@@ -45,25 +53,25 @@ public class Fireball_Script : MonoBehaviour
             );
         }
 
+        // Destrói após ultrapassar o alcance
         float traveled = Vector3.Distance(startPosition, transform.position);
         if (traveled >= SpellToCast.Range)
-        {
             Destroy(gameObject);
-        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        if (SpellToCast == null) return;
         if (other.gameObject == Caster) return;
         if (alreadyHit.Contains(other.gameObject)) return;
 
-        var stats = Caster.GetComponent<PlayerMagicSystem>()?.GetPlayerStats();
-        float dmg = DamageCalculator.CalculateFireballDamage(SpellToCast.DamageAmount, stats);
-        int finalDmg = Mathf.RoundToInt(dmg);
+        // Calcula dano
+        var stats     = Caster.GetComponent<PlayerMagicSystem>()?.GetPlayerStats();
+        float dmgF    = DamageCalculator.CalculateFireballDamage(
+                            SpellToCast.DamageAmount, stats);
+        int finalDmg  = Mathf.RoundToInt(dmgF);
 
-
-
-        // Inimigo comum
+        // Inimigos
         var actor = other.GetComponentInParent<Actor>();
         if (actor != null)
         {
@@ -72,7 +80,7 @@ public class Fireball_Script : MonoBehaviour
             return;
         }
 
-        // Jogador (ex: PvP)
+        // Outros players (PvP)
         var playerActor = other.GetComponentInParent<PlayerActor>();
         if (playerActor != null)
         {

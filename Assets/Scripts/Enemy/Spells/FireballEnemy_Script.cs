@@ -3,8 +3,9 @@ using System.Collections.Generic;
 
 public class FireballEnemy_Script : MonoBehaviour
 {
-    public EnemyProjectileSpell SpellData;
-    public GameObject Caster;
+    // Agora privados: serão setados apenas em Init(...)
+    private EnemyProjectileSpell SpellData;
+    private GameObject Caster;
 
     private SphereCollider myCollider;
     private Rigidbody myRigidbody;
@@ -20,14 +21,19 @@ public class FireballEnemy_Script : MonoBehaviour
         myRigidbody.isKinematic = true;
     }
 
+    /// <summary>
+    /// Inicializa o projétil com os dados da spell e quem é o caster.
+    /// Deve ser chamado pelo SpellCast (EnemySpellCast ou BossSpellCast).
+    /// </summary>
     public void Init(EnemyProjectileSpell data, GameObject caster)
     {
         SpellData = data;
-        Caster = caster;
+        Caster    = caster;
 
+        // Ignora colisão com o caster
         foreach (var myCol in GetComponentsInChildren<Collider>())
-        foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
-            Physics.IgnoreCollision(myCol, casterCol, true);
+            foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
+                Physics.IgnoreCollision(myCol, casterCol, true);
 
         startPosition = transform.position;
     }
@@ -36,13 +42,16 @@ public class FireballEnemy_Script : MonoBehaviour
     {
         if (SpellData == null) return;
 
-        if (SpellData.Speed > 0)
+        // Move-se à frente, conforme a velocidade definida
+        if (SpellData.Speed > 0f)
         {
             transform.Translate(
                 transform.forward * SpellData.Speed * Time.deltaTime,
-                Space.World);
+                Space.World
+            );
         }
 
+        // Destrói após ultrapassar o alcance
         float traveled = Vector3.Distance(startPosition, transform.position);
         if (traveled >= SpellData.Range)
         {
@@ -52,10 +61,12 @@ public class FireballEnemy_Script : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (SpellData == null) return;
         if (other.gameObject == Caster) return;
         if (alreadyHit.Contains(other.gameObject)) return;
 
-        PlayerActor player = other.GetComponentInParent<PlayerActor>();
+        // Só atinge o PlayerActor uma vez
+        var player = other.GetComponentInParent<PlayerActor>();
         if (player != null)
         {
             alreadyHit.Add(other.gameObject);
