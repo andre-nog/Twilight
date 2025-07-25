@@ -6543,11 +6543,13 @@ GameObject:
   - component: {fileID: 1189318711112628153}
   - component: {fileID: 8750138587097407777}
   - component: {fileID: -6161071351531238809}
-  - component: {fileID: 490992972136557344}
   - component: {fileID: -1098704925361543739}
+  - component: {fileID: 9119342153977816082}
+  - component: {fileID: -7018460262893117528}
+  - component: {fileID: 1520233662002766052}
   m_Layer: 6
   m_Name: Base mesh MonsterMutant7 skin4
-  m_TagString: Interactable
+  m_TagString: Boss1
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6659,7 +6661,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7901366144787319798}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 10
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -6694,39 +6696,6 @@ MonoBehaviour:
   healthbarPrefab: {fileID: 8108837965831734981, guid: 3ae8d2aed8005cb46b2d7180ec052ea8, type: 3}
   healthbarOffset: {x: 0, y: 2, z: 0}
   experienceReward: 1000
---- !u!114 &490992972136557344
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7901366144787319798}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4fada5cd1a75ceb489d5ef4de137860f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Spells:
-  - Name: Fireball
-    SpellPrefab: {fileID: 6873838601870300864, guid: 228b6418008c0e74d906fe135306e7cd, type: 3}
-    SpellData: {fileID: 11400000, guid: 02975a61c0997b642b12f926ebece567, type: 2}
-    CastPoint: {fileID: 7768233809722936171}
-    AnimatorTrigger: SpellTrigger
-    usesAnimationEvent: 1
-    AlertPrefab: {fileID: 3129595181548140314, guid: d6ef0cb12ebd1b144b7b035fc5215ac3, type: 3}
-    AlertBillboard: 1
-    AlertDuration: 1.5
-    NextCastTime: 0
-  - Name: Meteor
-    SpellPrefab: {fileID: 6873838601870300864, guid: aef9da551a51aea479fa5f9165b0cd9f, type: 3}
-    SpellData: {fileID: 11400000, guid: 1ecd5dff8179e864c8863583934b1096, type: 2}
-    CastPoint: {fileID: 7768233809722936171}
-    AnimatorTrigger: Spell2Trigger
-    usesAnimationEvent: 1
-    AlertPrefab: {fileID: 2549199087662451715, guid: 549a20117f9122640936650422b8cfb3, type: 3}
-    AlertBillboard: 1
-    AlertDuration: 3
-    NextCastTime: 0
 --- !u!114 &-1098704925361543739
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6746,6 +6715,63 @@ MonoBehaviour:
   attackDelay: 1.5
   attackDamage: 3
   hitEffect: {fileID: 3810448783153749638, guid: 0dcbd71311f14854ca210fe1012717f1, type: 3}
+--- !u!114 &9119342153977816082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7901366144787319798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fada5cd1a75ceb489d5ef4de137860f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Spells:
+  - Name: Fireball
+    SpellPrefab: {fileID: 6873838601870300864, guid: c4febf84f39ea7d48a599fcb8cc93467, type: 3}
+    SpellData: {fileID: 11400000, guid: 02975a61c0997b642b12f926ebece567, type: 2}
+    CastPoint: {fileID: 7768233809722936171}
+    AnimatorTrigger: SpellTrigger
+    usesAnimationEvent: 1
+    AlertPrefab: {fileID: 3129595181548140314, guid: d6ef0cb12ebd1b144b7b035fc5215ac3, type: 3}
+    AlertBillboard: 1
+    AlertDuration: 1.5
+    NextCastTime: 3.4028235e+38
+  - Name: Meteor
+    SpellPrefab: {fileID: 6873838601870300864, guid: aef9da551a51aea479fa5f9165b0cd9f, type: 3}
+    SpellData: {fileID: 11400000, guid: 1ecd5dff8179e864c8863583934b1096, type: 2}
+    CastPoint: {fileID: 7768233809722936171}
+    AnimatorTrigger: Spell2Trigger
+    usesAnimationEvent: 1
+    AlertPrefab: {fileID: 2549199087662451715, guid: 549a20117f9122640936650422b8cfb3, type: 3}
+    AlertBillboard: 1
+    AlertDuration: 2
+    NextCastTime: 3.4028235e+38
+--- !u!114 &-7018460262893117528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7901366144787319798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd966e85a742b2949beec4b37de15ed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1520233662002766052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7901366144787319798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 100c78f84aef7d84b834e453158f23dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7901366144787319800
 GameObject:
   m_ObjectHideFlags: 0

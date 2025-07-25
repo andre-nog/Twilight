@@ -26,21 +26,22 @@ public class PlayerStats : ScriptableObject
 
     [Header("Vida")]
     public float MaxHealth;
-
     public float CurrentHealth;
 
     // -------------------------------------
-    // Auto-Attack (substitui MageAttackSpell)
+    // Auto-Attack
     // -------------------------------------
     [Header("Auto-Attack")]
-    public float AutoAttackRange;              // usado como stoppingDistance
-    public float AutoAttackProjectileSpeed;    // velocidade da bolinha
+    public float AutoAttackRange;
+    public float AutoAttackProjectileSpeed;
+
+    [Header("Skills")]
+    public ProjectileSpell fireballData;  // usado no cálculo do dano da Fireball
 
     // -------------------------------------
     // Derived Stats (Editor)
     // -------------------------------------
-    public int   ExperienceToNextLevel => Mathf.FloorToInt(50 * Level);
+    public int ExperienceToNextLevel => Mathf.FloorToInt(50 * Level);
     public float FinalAttackDamage => AttackDamage + Intelligence * 0.10f;
-    public float FinalAttackSpeed     => AttackSpeed  * (1);
-
+    public float FinalAttackSpeed => AttackSpeed;
 }

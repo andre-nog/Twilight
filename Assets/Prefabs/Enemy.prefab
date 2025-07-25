@@ -2461,6 +2461,7 @@ GameObject:
   - component: {fileID: 8461365499999071489}
   - component: {fileID: 5947504907562332726}
   - component: {fileID: 274189558354810551}
+  - component: {fileID: -7662339316994207171}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Interactable
@@ -2647,6 +2648,18 @@ MonoBehaviour:
   attackDelay: 1.5
   attackDamage: 2
   hitEffect: {fileID: 3810448783153749638, guid: 0dcbd71311f14854ca210fe1012717f1, type: 3}
+--- !u!114 &-7662339316994207171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7474672665139633120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 100c78f84aef7d84b834e453158f23dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7601477575129498072
 GameObject:
   m_ObjectHideFlags: 0

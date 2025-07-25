@@ -9,15 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8f2e97fa0011a654bac1d83d3e54f292, type: 3}
-  m_Name: Teleport
+  m_Script: {fileID: 11500000, guid: 5be5e49cf10c31647851e0ca27ed5449, type: 3}
+  m_Name: WindWall
   m_EditorClassIdentifier: 
   SkillName: Habilidade
-  Description: "Voc\xEA salta numa dist\xE2ncia de {RANGE} na posi\xE7\xE3o do mouse.\n\nCusto
-    de mana: {MANA}"
+  Description: "Descri\xE7\xE3o com {DANO}"
   ExtraDetails: 
-  Cooldown: 12
-  DamageAmount: 10
+  Cooldown: 15
+  DamageAmount: 0
   ManaCost: 10
-  CastDelay: 0
-  Range: 6
+  Range: 1.5
+  Duration: 3

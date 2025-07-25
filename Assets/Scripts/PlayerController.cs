@@ -12,8 +12,8 @@ public class PlayerController : MonoBehaviour
     private PlayerMagicSystem magic;
 
     [Header("Layers / FX")]
-    [SerializeField]  LayerMask clickableLayers;      // chão + inimigos
-    [SerializeField]  LayerMask enemyLayer;           // só Enemy
+    [SerializeField]  LayerMask clickableLayers;
+    [SerializeField]  LayerMask enemyLayer;
     [SerializeField]  ParticleSystem clickFx;
     [Header("Attack-Move (A) Cursor")]
     [SerializeField]  Texture2D attackCursor;
@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
     /* runtime */
     Interactable target;
     bool waitingAttackClick;
+    bool isHoldingRight;
     float lookSpeed = 8f;
 
     /* life-cycle ----------------------------------------------------------- */
@@ -38,6 +39,10 @@ public class PlayerController : MonoBehaviour
     /* main loop ----------------------------------------------------------- */
     void Update()
     {
+        if (Mouse.current.rightButton.wasPressedThisFrame)  isHoldingRight = true;
+        if (Mouse.current.rightButton.wasReleasedThisFrame) isHoldingRight = false;
+        if (isHoldingRight) HoldMove();
+
         if (Keyboard.current.aKey.wasPressedThisFrame)
         {
             waitingAttackClick = true;
@@ -59,9 +64,8 @@ public class PlayerController : MonoBehaviour
         waitingAttackClick = false;
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 
-        if (!MouseRay(out var hit)) return;
+        if (!TryGetMouseHit(out var hit)) return;
 
-        // 1. Se clicou diretamente num inimigo, ele vira o alvo
         if (hit.transform.GetComponentInParent<Actor>() is Actor clickedEnemy &&
             ((1 << clickedEnemy.gameObject.layer) & enemyLayer.value) != 0)
         {
@@ -77,10 +81,8 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // 2. Caso contrário, tenta pegar o inimigo mais próximo do player
         float range = magic.GetPlayerStats().AutoAttackRange;
         var hits = Physics.OverlapSphere(transform.position, range, enemyLayer);
-
         if (hits.Length > 0)
         {
             Transform closest = Closest(hits);
@@ -96,19 +98,34 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // 3. Nenhum inimigo — apenas anda até o ponto clicado
+        target = null;
         MoveTo(hit.point);
     }
 
     /* clique direito ------------------------------------------------------ */
     void RightClick()
     {
-        if (!MouseRay(out var hit)) return;
+        if (!TryGetMouseHit(out var hit)) return;
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor enemy)
         {
             target = enemy.GetComponent<Interactable>();
-            MoveTo(enemy.transform.position);
+            magic.SetCurrentAttackTarget(enemy.transform);
+
+            float dist  = Vector3.Distance(transform.position, enemy.transform.position);
+            float range = magic.GetPlayerStats().AutoAttackRange;
+
+            if (dist <= range && magic.CanCastMageAttack)
+            {
+                agent.isStopped = true;
+                agent.ResetPath();
+                agent.velocity  = Vector3.zero;
+                magic.TryCastMageAttackAt(enemy.transform);
+            }
+            else
+            {
+                MoveTo(enemy.transform.position);
+            }
         }
         else
         {
@@ -121,12 +138,25 @@ public class PlayerController : MonoBehaviour
         if (clickFx) Instantiate(clickFx, hit.point + Vector3.up * .1f, clickFx.transform.rotation);
     }
 
+    /* movimentação contínua segurando RMB -------------------------------- */
+    void HoldMove()
+    {
+        if (!TryGetMouseHit(out var hit)) return;
+
+        if (Vector3.Distance(agent.destination, hit.point) > 0.2f)
+        {
+            target = null;
+            MoveTo(hit.point);
+        }
+    }
+
     /* core behaviours ----------------------------------------------------- */
     void MoveTo(Vector3 pos)
     {
         agent.isStopped = false;
         agent.SetDestination(pos);
     }
+
     void AutoAttack()
     {
         if (!target) return;
@@ -136,6 +166,7 @@ public class PlayerController : MonoBehaviour
             magic.TryCastMageAttackAt(target.transform);
         }
     }
+
     void StopNearTarget()
     {
         if (!target) return;
@@ -149,6 +180,7 @@ public class PlayerController : MonoBehaviour
             agent.SetDestination(target.transform.position);
         }
     }
+
     void Face()
     {
         if (magic.IsCasting)
@@ -160,13 +192,27 @@ public class PlayerController : MonoBehaviour
     }
 
     /* helpers ------------------------------------------------------------- */
-    bool MouseRay(out RaycastHit hit)
+    bool TryGetMouseHit(out RaycastHit hit)
     {
         hit = default;
         if (!Camera.main) return false;
-        Ray r = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        return Physics.Raycast(r, out hit, 100f, clickableLayers);
+
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        var hits = Physics.RaycastAll(ray, 100f, clickableLayers);
+
+        foreach (var h in hits)
+        {
+            if (h.transform.GetComponentInParent<PlayerActor>() != null &&
+                h.transform.GetComponentInParent<PlayerController>() == this)
+                continue;
+
+            hit = h;
+            return true;
+        }
+
+        return false;
     }
+
     Transform Closest(Collider[] cols)
     {
         Transform best = null; float dMin = float.MaxValue;
@@ -177,6 +223,7 @@ public class PlayerController : MonoBehaviour
         }
         return best;
     }
+
     bool InRange(Transform t)
         => Vector3.Distance(transform.position, t.position) <= magic.GetPlayerStats().AutoAttackRange;
 

@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DamageAmount: 3
   CastDelay: 0
-  TimeUntilFirstCast: 15
-  Cooldown: 10
+  TimeUntilFirstCast: 4
+  Cooldown: 6
   Speed: 10
   Range: 10
-  RandomStartOffset: 2
+  RandomStartOffset: 2.99

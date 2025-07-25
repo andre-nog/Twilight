@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1413c0ed2f9efee48bd6c172c29599a7, type: 3}
   m_Name: Fireball
   m_EditorClassIdentifier: 
+  SkillName: Fireball
+  Description: "Voc\xEA lan\xE7a uma bola de fogo numa linha reta causando {DANO}
+    {CALCULO} em todos os inimigos atingidos.\n\nCusto de mana: {MANA}"
+  ExtraDetails: 
+  Cooldown: 10
   DamageAmount: 10
   ManaCost: 10
   CastDelay: 0
-  Cooldown: 10
   Lifetime: 1
   Speed: 10
   SpellRadius: 0.5

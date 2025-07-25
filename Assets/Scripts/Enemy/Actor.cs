@@ -78,6 +78,16 @@ public class Actor : MonoBehaviour
                 tracker.ContarInimigoDerrotado();
             }
 
+            // ✅ Notifica se for o Boss final (tag "Boss1")
+            if (CompareTag("Boss1"))
+            {
+                QuestTracker bossTracker = FindFirstObjectByType<QuestTracker>();
+                if (bossTracker != null)
+                {
+                    bossTracker.BossFinalDerrotado();
+                }
+            }
+
             // ✅ Limpa alvo do player se estiver atacando este inimigo
             var controller = FindFirstObjectByType<PlayerController>();
             if (controller != null && controller.CurrentTarget != null &&
@@ -108,9 +118,20 @@ public class Actor : MonoBehaviour
             fallbackTracker.ContarInimigoDerrotado();
         }
 
+        // ✅ Notifica se for o Boss final (tag "Boss1") - fallback
+        if (CompareTag("Boss1"))
+        {
+            QuestTracker bossTracker = FindFirstObjectByType<QuestTracker>();
+            if (bossTracker != null)
+            {
+                bossTracker.BossFinalDerrotado();
+            }
+        }
+
         Debug.Log($"[Actor] {gameObject.name} morreu e deu {experienceReward} XP!");
         Destroy(gameObject);
     }
+
 
     public void Heal(float amount)
     {
@@ -120,7 +141,6 @@ public class Actor : MonoBehaviour
         if (healthbar != null)
             healthbar.UpdateHealth(CurrentHealth, maxHealth);
     }
-
     public void HealFull()
     {
         // Corrigido: sempre cura totalmente, mesmo se estiver com 0 de vida

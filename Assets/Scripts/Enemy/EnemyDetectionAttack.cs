@@ -279,9 +279,3 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
 
 /* ---------- Support ---------- */
 public interface IAggroReceiver { void TakeAggro(); }
-
-public class EnemyState : MonoBehaviour
-{
-    public bool IsBusy { get; private set; }
-    public void SetBusy(bool busy) => IsBusy = busy;
-}

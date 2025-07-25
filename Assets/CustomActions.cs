@@ -117,6 +117,15 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""CastWindWall"",
+                    ""type"": ""PassThrough"",
+                    ""id"": ""9365e784-d853-4e92-832b-04bdcec4bae2"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -152,6 +161,17 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
                     ""action"": ""Teleport"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7dedfd72-51da-4e96-a679-bd36da0415b5"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CastWindWall"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -163,6 +183,7 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
         m_Main_Move = m_Main.FindAction("Move", throwIfNotFound: true);
         m_Main_SpellCast = m_Main.FindAction("SpellCast", throwIfNotFound: true);
         m_Main_Teleport = m_Main.FindAction("Teleport", throwIfNotFound: true);
+        m_Main_CastWindWall = m_Main.FindAction("CastWindWall", throwIfNotFound: true);
     }
 
     ~@CustomActions()
@@ -246,6 +267,7 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Main_Move;
     private readonly InputAction m_Main_SpellCast;
     private readonly InputAction m_Main_Teleport;
+    private readonly InputAction m_Main_CastWindWall;
     /// <summary>
     /// Provides access to input actions defined in input action map "Main".
     /// </summary>
@@ -269,6 +291,10 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Main/Teleport".
         /// </summary>
         public InputAction @Teleport => m_Wrapper.m_Main_Teleport;
+        /// <summary>
+        /// Provides access to the underlying input action "Main/CastWindWall".
+        /// </summary>
+        public InputAction @CastWindWall => m_Wrapper.m_Main_CastWindWall;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -304,6 +330,9 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
             @Teleport.started += instance.OnTeleport;
             @Teleport.performed += instance.OnTeleport;
             @Teleport.canceled += instance.OnTeleport;
+            @CastWindWall.started += instance.OnCastWindWall;
+            @CastWindWall.performed += instance.OnCastWindWall;
+            @CastWindWall.canceled += instance.OnCastWindWall;
         }
 
         /// <summary>
@@ -324,6 +353,9 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
             @Teleport.started -= instance.OnTeleport;
             @Teleport.performed -= instance.OnTeleport;
             @Teleport.canceled -= instance.OnTeleport;
+            @CastWindWall.started -= instance.OnCastWindWall;
+            @CastWindWall.performed -= instance.OnCastWindWall;
+            @CastWindWall.canceled -= instance.OnCastWindWall;
         }
 
         /// <summary>
@@ -385,5 +417,12 @@ public partial class @CustomActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnTeleport(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "CastWindWall" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnCastWindWall(InputAction.CallbackContext context);
     }
 }
