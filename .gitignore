@@ -9,7 +9,6 @@
 MemoryCaptures/
 
 # Visual Studio / Rider / VS Code
-.vscode/
 .idea/
 *.csproj
 *.unityproj
