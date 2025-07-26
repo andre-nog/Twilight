@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent), typeof(Animator))]
-public class PlayerController : MonoBehaviour
+public class PlayerController : DebuggableMonoBehaviour
 {
     /* refs & data --------------------------------------------------------- */
     private CustomActions     input;
@@ -25,8 +25,13 @@ public class PlayerController : MonoBehaviour
     bool isHoldingRight;
     float lookSpeed = 8f;
 
-    /* life-cycle ----------------------------------------------------------- */
-    void Awake()
+  /* life-cycle ----------------------------------------------------------- */
+  void Start()
+  {
+    enableDebugLogs = false;
+  }
+
+  void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         anim  = GetComponent<Animator>();
@@ -65,6 +70,7 @@ public class PlayerController : MonoBehaviour
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 
         if (!TryGetMouseHit(out var hit)) return;
+        DebugLog($"[PlayerController] AttackMove hit: {hit.transform.name} at {hit.point}");
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor clickedEnemy &&
             ((1 << clickedEnemy.gameObject.layer) & enemyLayer.value) != 0)
@@ -106,6 +112,7 @@ public class PlayerController : MonoBehaviour
     void RightClick()
     {
         if (!TryGetMouseHit(out var hit)) return;
+        DebugLog($"[PlayerController] RightClick hit: {hit.transform.name} at {hit.point}");
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor enemy)
         {
@@ -142,10 +149,10 @@ public class PlayerController : MonoBehaviour
     void HoldMove()
     {
         if (!TryGetMouseHit(out var hit)) return;
+        DebugLog($"[PlayerController] HoldMove hit: {hit.transform.name} at {hit.point}");
 
         if (Vector3.Distance(agent.destination, hit.point) > 0.2f)
         {
-            target = null;
             MoveTo(hit.point);
         }
     }
@@ -199,8 +206,10 @@ public class PlayerController : MonoBehaviour
 
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
         var hits = Physics.RaycastAll(ray, 100f, clickableLayers);
+        var enemyHits = System.Array.FindAll(hits, h => ((1 << h.transform.gameObject.layer) & enemyLayer.value) != 0);
+        var prioritizedHits = enemyHits.Length > 0 ? enemyHits : hits;
 
-        foreach (var h in hits)
+        foreach (var h in prioritizedHits)
         {
             if (h.transform.GetComponentInParent<PlayerActor>() != null &&
                 h.transform.GetComponentInParent<PlayerController>() == this)
