@@ -25,7 +25,8 @@ public class BossSpell
 #endregion
 
 [AddComponentMenu("Enemy/Boss Spell Cast")]
-public class BossSpellCast : MonoBehaviour
+
+public class BossSpellCast : DebuggableMonoBehaviour
 {
     [Header("Spells")] public List<BossSpell> Spells;
 
@@ -43,14 +44,15 @@ public class BossSpellCast : MonoBehaviour
     GameObject  currentAlert;
     Vector3?    meteorTargetPos;
 
-void Start()
-{
-    Debug.Log("[Boss] Start() chamado");
-}
+    void Start()
+    {
+        enableDebugLogs = false;
+        DebugLog("[Boss] Start() chamado");
+    }
 
     void Awake()
     {
-        Debug.Log("[Boss] Awake() chamado");
+        DebugLog("[Boss] Awake() chamado");
         animator     = GetComponent<Animator>();
         agent        = GetComponent<NavMeshAgent>();
         enemyState   = GetComponent<EnemyState>();
@@ -58,69 +60,69 @@ void Start()
         target       = GameObject.FindWithTag("Player")?.transform;
     }
 
-void Update()
-{
-    Debug.Log("[Boss][Update] Entrou no Update");
-
-    if (attackModule == null)
+    void Update()
     {
-        Debug.LogWarning("[Boss][Update] attackModule está null");
-        return;
-    }
+        DebugLog("[Boss][Update] Entrou no Update");
 
-    if (enemyState == null)
-    {
-        Debug.LogWarning("[Boss][Update] enemyState está null");
-        return;
-    }
-
-    bool nowAggro = attackModule.HasAggro;
-    Debug.Log($"[Boss][Update] hasAggro atual: {hasAggro}, attackModule.HasAggro: {nowAggro}");
-
-    if (nowAggro && !hasAggro)
-    {
-        Debug.Log("[Boss][Update] Mudou para COM AGGRO - chamando ScheduleFirstCast");
-        hasAggro = true;
-        ScheduleFirstCast();
-    }
-    else if (!nowAggro && hasAggro)
-    {
-        Debug.Log("[Boss][Update] Perdeu o AGGRO - abortando cast");
-        hasAggro = false;
-        AbortCurrentCast();
-    }
-
-    if (!hasAggro)
-    {
-        Debug.Log("[Boss][Update] Não tem aggro. Saindo...");
-        return;
-    }
-
-    if (isCasting)
-    {
-        Debug.Log("[Boss][Update] Está no meio de um cast. Aguardando...");
-        return;
-    }
-
-    for (int i = 0; i < Spells.Count; i++)
-    {
-        var s = Spells[i];
-        Debug.Log($"[Boss][Update] Spell '{s.Name}': Time.time={Time.time:F2}, NextCastTime={s.NextCastTime:F2}");
-
-        if (Time.time >= s.NextCastTime)
+        if (attackModule == null)
         {
-            Debug.Log($"[Boss][Update] Iniciando cast de: {s.Name}");
-            StartCoroutine(CastSpell(s));
-            break;
+            DebugLog("[Boss][Update] attackModule está null");
+            return;
+        }
+
+        if (enemyState == null)
+        {
+            DebugLog("[Boss][Update] enemyState está null");
+            return;
+        }
+
+        bool nowAggro = attackModule.HasAggro;
+        DebugLog($"[Boss][Update] hasAggro atual: {hasAggro}, attackModule.HasAggro: {nowAggro}");
+
+        if (nowAggro && !hasAggro)
+        {
+            DebugLog("[Boss][Update] Mudou para COM AGGRO - chamando ScheduleFirstCast");
+            hasAggro = true;
+            ScheduleFirstCast();
+        }
+        else if (!nowAggro && hasAggro)
+        {
+            DebugLog("[Boss][Update] Perdeu o AGGRO - abortando cast");
+            hasAggro = false;
+            AbortCurrentCast();
+        }
+
+        if (!hasAggro)
+        {
+            DebugLog("[Boss][Update] Não tem aggro. Saindo...");
+            return;
+        }
+
+        if (isCasting)
+        {
+            DebugLog("[Boss][Update] Está no meio de um cast. Aguardando...");
+            return;
+        }
+
+        for (int i = 0; i < Spells.Count; i++)
+        {
+            var s = Spells[i];
+            DebugLog($"[Boss][Update] Spell '{s.Name}': Time.time={Time.time:F2}, NextCastTime={s.NextCastTime:F2}");
+
+            if (Time.time >= s.NextCastTime)
+            {
+                DebugLog($"[Boss][Update] Iniciando cast de: {s.Name}");
+                StartCoroutine(CastSpell(s));
+                break;
+            }
+        }
+
+        if (currentAlert && alertBillboard && Camera.main)
+        {
+            DebugLog("[Boss][Update] Rotacionando alerta para câmera");
+            currentAlert.transform.LookAt(Camera.main.transform);
         }
     }
-
-    if (currentAlert && alertBillboard && Camera.main)
-    {
-        Debug.Log("[Boss][Update] Rotacionando alerta para câmera");
-        currentAlert.transform.LookAt(Camera.main.transform);
-    }
-}
 
 
     /*──── Helpers ────*/
@@ -148,115 +150,115 @@ void Update()
     }
 
     /*──── Cast Coroutine ────*/
-IEnumerator CastSpell(BossSpell spell)
-{
-    Debug.Log($"[Boss] → Entrando em CastSpell({spell.Name})");
-
-    if (attackModule) attackModule.enabled = false;
-    animator.ResetTrigger("AttackTrigger");
-
-    isCasting = true;
-    enemyState.SetBusy(true);
-    if (agent) agent.isStopped = true;
-
-    float lead     = 1f;
-    bool  isMeteor = spell.Name.ToLower().Contains("meteor");
-
-    float waitPre  = isMeteor ? 0f : Mathf.Max(0f, spell.SpellData.CastDelay - lead);
-    float waitPost = isMeteor ? 0f : Mathf.Min(lead, spell.SpellData.CastDelay);
-
-    yield return new WaitForSeconds(waitPre);
-
-    Debug.Log($"[Boss] Preparando alerta de {spell.Name}");
-
-    if (spell.AlertPrefab)
+    IEnumerator CastSpell(BossSpell spell)
     {
-        Vector3 pos; Quaternion rot; Transform parent;
-        if (isMeteor)
+        DebugLog($"[Boss] → Entrando em CastSpell({spell.Name})");
+
+        if (attackModule) attackModule.enabled = false;
+        animator.ResetTrigger("AttackTrigger");
+
+        isCasting = true;
+        enemyState.SetBusy(true);
+        if (agent) agent.isStopped = true;
+
+        float lead     = 1f;
+        bool  isMeteor = spell.Name.ToLower().Contains("meteor");
+
+        float waitPre  = isMeteor ? 0f : Mathf.Max(0f, spell.SpellData.CastDelay - lead);
+        float waitPost = isMeteor ? 0f : Mathf.Min(lead, spell.SpellData.CastDelay);
+
+        yield return new WaitForSeconds(waitPre);
+
+        DebugLog($"[Boss] Preparando alerta de {spell.Name}");
+
+        if (spell.AlertPrefab)
         {
-            if (target == null)
+            Vector3 pos; Quaternion rot; Transform parent;
+            if (isMeteor)
             {
-                Debug.LogWarning("[Boss] Target é null na hora do alerta do Meteor!");
-                yield break;
+                if (target == null)
+                {
+                    DebugLog("[Boss] Target é null na hora do alerta do Meteor!");
+                    yield break;
+                }
+
+                pos             = target.position + Vector3.up * .1f;
+                rot             = Quaternion.Euler(90, 0, 0);
+                parent          = null;
+                meteorTargetPos = target.position;
+            }
+            else
+            {
+                pos    = transform.position + alertOffset;
+                rot    = Quaternion.identity;
+                parent = transform;
             }
 
-            pos             = target.position + Vector3.up * .1f;
-            rot             = Quaternion.Euler(90, 0, 0);
-            parent          = null;
-            meteorTargetPos = target.position;
+            DebugLog($"[Boss] Instanciando alerta {spell.AlertPrefab.name} em {pos}");
+            currentAlert = Instantiate(spell.AlertPrefab, pos, rot, parent);
+            alertBillboard = spell.AlertBillboard;
+            Destroy(currentAlert, spell.AlertDuration);
         }
         else
         {
-            pos    = transform.position + alertOffset;
-            rot    = Quaternion.identity;
-            parent = transform;
+            DebugLog($"[Boss] Nenhum AlertPrefab definido para {spell.Name}");
         }
 
-        Debug.Log($"[Boss] Instanciando alerta {spell.AlertPrefab.name} em {pos}");
-        currentAlert = Instantiate(spell.AlertPrefab, pos, rot, parent);
-        alertBillboard = spell.AlertBillboard;
-        Destroy(currentAlert, spell.AlertDuration);
-    }
-    else
-    {
-        Debug.LogWarning($"[Boss] Nenhum AlertPrefab definido para {spell.Name}");
-    }
+        yield return new WaitForSeconds(waitPost);
 
-    yield return new WaitForSeconds(waitPost);
+        DebugLog($"[Boss] Disparando trigger de animação: {spell.AnimatorTrigger}");
+        animator.SetTrigger(spell.AnimatorTrigger);
 
-    Debug.Log($"[Boss] Disparando trigger de animação: {spell.AnimatorTrigger}");
-    animator.SetTrigger(spell.AnimatorTrigger);
-
-    if (!spell.usesAnimationEvent)
-    {
-        Debug.Log($"[Boss] Spell {spell.Name} não usa evento — executando direto");
-        ExecuteSpell(spell);
+        if (!spell.usesAnimationEvent)
+        {
+            DebugLog($"[Boss] Spell {spell.Name} não usa evento — executando direto");
+            ExecuteSpell(spell);
+        }
     }
-}
 
 
     /*──── Execução efetiva ────*/
-void ExecuteSpell(BossSpell spell)
-{
-    Debug.Log($"[Boss] Executando spell: {spell.Name}");
-
-    if (spell.SpellPrefab == null)
+    void ExecuteSpell(BossSpell spell)
     {
-        Debug.LogWarning($"[Boss] Spell {spell.Name} não tem prefab!");
-        return;
+        DebugLog($"[Boss] Executando spell: {spell.Name}");
+
+        if (spell.SpellPrefab == null)
+        {
+            DebugLog($"[Boss] Spell {spell.Name} não tem prefab!");
+            return;
+        }
+
+        if (spell.Name.ToLower().Contains("meteor") && meteorTargetPos.HasValue)
+        {
+            Vector3 spawn = meteorTargetPos.Value + Vector3.up * 10f;
+            var proj = Instantiate(spell.SpellPrefab, spawn, Quaternion.identity);
+            DebugLog($"[Boss] Spawn do meteorito em {spawn}");
+
+            if (proj.TryGetComponent<MeteorStrikeProjectile>(out var scr))
+                scr.Init(spell.SpellData, gameObject, meteorTargetPos.Value);
+        }
+        else if (spell.CastPoint && target)
+        {
+            Vector3 dir = target.position - spell.CastPoint.position; dir.y = 0f;
+            var proj = Instantiate(
+                spell.SpellPrefab,
+                spell.CastPoint.position,
+                Quaternion.LookRotation(dir.normalized));
+
+            DebugLog($"[Boss] Spawn da magia em {spell.CastPoint.position} mirando {target.position}");
+
+            if (proj.TryGetComponent<FireballEnemy_Script>(out var scr))
+                scr.Init(spell.SpellData, gameObject);
+        }
+
+        spell.NextCastTime = Time.time + spell.SpellData.Cooldown;
+
+        isCasting = false;
+        enemyState.SetBusy(false);
+        if (agent) agent.isStopped = false;
+        if (attackModule) attackModule.enabled = true;
+        alertBillboard = false;
     }
-
-    if (spell.Name.ToLower().Contains("meteor") && meteorTargetPos.HasValue)
-    {
-        Vector3 spawn = meteorTargetPos.Value + Vector3.up * 10f;
-        var proj = Instantiate(spell.SpellPrefab, spawn, Quaternion.identity);
-        Debug.Log($"[Boss] Spawn do meteorito em {spawn}");
-
-        if (proj.TryGetComponent<MeteorStrikeProjectile>(out var scr))
-            scr.Init(spell.SpellData, gameObject, meteorTargetPos.Value);
-    }
-    else if (spell.CastPoint && target)
-    {
-        Vector3 dir = target.position - spell.CastPoint.position; dir.y = 0f;
-        var proj = Instantiate(
-            spell.SpellPrefab,
-            spell.CastPoint.position,
-            Quaternion.LookRotation(dir.normalized));
-
-        Debug.Log($"[Boss] Spawn da magia em {spell.CastPoint.position} mirando {target.position}");
-
-        if (proj.TryGetComponent<FireballEnemy_Script>(out var scr))
-            scr.Init(spell.SpellData, gameObject);
-    }
-
-    spell.NextCastTime = Time.time + spell.SpellData.Cooldown;
-
-    isCasting = false;
-    enemyState.SetBusy(false);
-    if (agent) agent.isStopped = false;
-    if (attackModule) attackModule.enabled = true;
-    alertBillboard = false;
-}
 
 
     /*──── Animation Events ────*/
