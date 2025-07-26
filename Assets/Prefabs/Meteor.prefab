@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7180933622656956910}
   - component: {fileID: 792105853456126212}
   - component: {fileID: 7948902874218157601}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: FireballGraphics
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -120,7 +120,7 @@ GameObject:
   - component: {fileID: 4524767066780192772}
   - component: {fileID: 6416948275830794824}
   - component: {fileID: -5571806774336370647}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Meteor
   m_TagString: Untagged
   m_Icon: {fileID: 0}

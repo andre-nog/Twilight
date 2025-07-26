@@ -6582,10 +6582,10 @@ NavMeshAgent:
   m_GameObject: {fileID: 7901366144787319798}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.5
+  m_Radius: 0.15
   m_Speed: 4
   m_Acceleration: 999999
-  avoidancePriority: 50
+  avoidancePriority: 0
   m_AngularSpeed: 0
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
@@ -6594,7 +6594,7 @@ NavMeshAgent:
   m_Height: 2
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
+  m_ObstacleAvoidanceType: 0
 --- !u!95 &7901366144794753078
 Animator:
   serializedVersion: 7
@@ -6649,7 +6649,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.32
   m_Height: 2.5
   m_Direction: 1
   m_Center: {x: 0, y: 0.7248566, z: 0}
@@ -6727,6 +6727,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fada5cd1a75ceb489d5ef4de137860f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  enableDebugLogs: 0
   Spells:
   - Name: Fireball
     SpellPrefab: {fileID: 6873838601870300864, guid: c4febf84f39ea7d48a599fcb8cc93467, type: 3}

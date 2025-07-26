@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AttackDamage: 3
   AttackSpeed: 0.7
-  Level: 16
-  Experience: 25
+  Level: 12
+  Experience: 525
   Strength: 10
-  Intelligence: 160
+  Intelligence: 120
   Agility: 10
   MaxMana: 50
   CurrentMana: 50
   ManaRechargeRate: 3
-  MaxHealth: 90
-  CurrentHealth: 40
+  MaxHealth: 70
+  CurrentHealth: 22
   AutoAttackRange: 6
   AutoAttackProjectileSpeed: 9
   fireballData: {fileID: 11400000, guid: 6490657e733099640be41bf3e638e7f5, type: 2}
