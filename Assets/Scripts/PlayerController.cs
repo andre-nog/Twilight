@@ -3,21 +3,21 @@ using UnityEngine.InputSystem;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent), typeof(Animator))]
-public class PlayerController : MonoBehaviour
+public class PlayerController : DebuggableMonoBehaviour
 {
     /* refs & data --------------------------------------------------------- */
-    private CustomActions     input;
-    private NavMeshAgent      agent;
-    private Animator          anim;
+    private CustomActions input;
+    private NavMeshAgent agent;
+    private Animator anim;
     private PlayerMagicSystem magic;
 
     [Header("Layers / FX")]
-    [SerializeField]  LayerMask clickableLayers;
-    [SerializeField]  LayerMask enemyLayer;
-    [SerializeField]  ParticleSystem clickFx;
+    [SerializeField] LayerMask clickableLayers;
+    [SerializeField] LayerMask enemyLayer;
+    [SerializeField] ParticleSystem clickFx;
     [Header("Attack-Move (A) Cursor")]
-    [SerializeField]  Texture2D attackCursor;
-    [SerializeField]  Vector2   cursorHotspot = new (16,16);
+    [SerializeField] Texture2D attackCursor;
+    [SerializeField] Vector2 cursorHotspot = new(16, 16);
 
     /* runtime */
     Interactable target;
@@ -26,20 +26,25 @@ public class PlayerController : MonoBehaviour
     float lookSpeed = 8f;
 
     /* life-cycle ----------------------------------------------------------- */
+    void Start()
+    {
+        enableDebugLogs = false;
+    }
+
     void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        anim  = GetComponent<Animator>();
+        anim = GetComponent<Animator>();
         magic = GetComponent<PlayerMagicSystem>();
         input = new CustomActions();
     }
-    void OnEnable()  { input.Main.Move.performed += _ => RightClick(); input.Enable();  }
+    void OnEnable() { input.Main.Move.performed += _ => RightClick(); input.Enable(); }
     void OnDisable() { input.Main.Move.performed -= _ => RightClick(); input.Disable(); }
 
     /* main loop ----------------------------------------------------------- */
     void Update()
     {
-        if (Mouse.current.rightButton.wasPressedThisFrame)  isHoldingRight = true;
+        if (Mouse.current.rightButton.wasPressedThisFrame) isHoldingRight = true;
         if (Mouse.current.rightButton.wasReleasedThisFrame) isHoldingRight = false;
         if (isHoldingRight) HoldMove();
 
@@ -65,6 +70,7 @@ public class PlayerController : MonoBehaviour
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 
         if (!TryGetMouseHit(out var hit)) return;
+        DebugLog($"[PlayerController] AttackMove hit: {hit.transform.name} at {hit.point}");
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor clickedEnemy &&
             ((1 << clickedEnemy.gameObject.layer) & enemyLayer.value) != 0)
@@ -106,20 +112,21 @@ public class PlayerController : MonoBehaviour
     void RightClick()
     {
         if (!TryGetMouseHit(out var hit)) return;
+        DebugLog($"[PlayerController] RightClick hit: {hit.transform.name} at {hit.point}");
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor enemy)
         {
             target = enemy.GetComponent<Interactable>();
             magic.SetCurrentAttackTarget(enemy.transform);
 
-            float dist  = Vector3.Distance(transform.position, enemy.transform.position);
+            float dist = Vector3.Distance(transform.position, enemy.transform.position);
             float range = magic.GetPlayerStats().AutoAttackRange;
 
             if (dist <= range && magic.CanCastMageAttack)
             {
                 agent.isStopped = true;
                 agent.ResetPath();
-                agent.velocity  = Vector3.zero;
+                agent.velocity = Vector3.zero;
                 magic.TryCastMageAttackAt(enemy.transform);
             }
             else
@@ -142,10 +149,10 @@ public class PlayerController : MonoBehaviour
     void HoldMove()
     {
         if (!TryGetMouseHit(out var hit)) return;
+        DebugLog($"[PlayerController] HoldMove hit: {hit.transform.name} at {hit.point}");
 
         if (Vector3.Distance(agent.destination, hit.point) > 0.2f)
         {
-            target = null;
             MoveTo(hit.point);
         }
     }
@@ -199,8 +206,10 @@ public class PlayerController : MonoBehaviour
 
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
         var hits = Physics.RaycastAll(ray, 100f, clickableLayers);
+        var enemyHits = System.Array.FindAll(hits, h => ((1 << h.transform.gameObject.layer) & enemyLayer.value) != 0);
+        var prioritizedHits = enemyHits.Length > 0 ? enemyHits : hits;
 
-        foreach (var h in hits)
+        foreach (var h in prioritizedHits)
         {
             if (h.transform.GetComponentInParent<PlayerActor>() != null &&
                 h.transform.GetComponentInParent<PlayerController>() == this)
