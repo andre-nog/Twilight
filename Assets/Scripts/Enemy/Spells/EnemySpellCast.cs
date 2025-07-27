@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using Unity.Netcode;
 
 [AddComponentMenu("Enemy/Spell Cast")]
 public class EnemySpellCast : MonoBehaviour
@@ -126,8 +127,11 @@ public class EnemySpellCast : MonoBehaviour
         dir.y = 0f;
         Quaternion rot = Quaternion.LookRotation(dir.normalized);
 
-        var proj = Instantiate(spellPrefab, castPoint.position, rot);
-        if (proj.TryGetComponent<FireballEnemy_Script>(out var script))
+        var projObj = Instantiate(spellPrefab, castPoint.position, rot);
+        if (projObj.TryGetComponent<NetworkObject>(out var netObj))
+            netObj.Spawn(); // agora visível na rede
+
+        if (projObj.TryGetComponent<FireballEnemy_Script>(out var script))
             script.Init(spellData, gameObject);
     }
 }

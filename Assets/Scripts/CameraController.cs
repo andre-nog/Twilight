@@ -9,9 +9,25 @@ public class CameraController : MonoBehaviour
     public float smoothSpeed = 8f;
     public Vector3 offset;
 
+    void Start()
+    {
+        if (target == null)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                target = player.transform;
+            }
+            else
+            {
+                Debug.LogWarning("[CameraController] Nenhum objeto com tag 'Player' encontrado.");
+            }
+        }
+    }
+
     void Update()
     {
-        if(target != null)
+        if (target != null)
         {
             Vector3 desiredPosition = new Vector3(target.position.x + offset.x, target.position.y + offset.y, target.position.z + offset.z);
             Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);

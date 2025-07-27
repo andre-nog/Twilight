@@ -8,12 +8,12 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
 {
     /* ---------- Config ----------- */
     [Header("Detection & Attack")]
-    [SerializeField] private float detectionRange   = 4f;
-    [SerializeField] private float aggroLoseRange   = 15f;
-    [SerializeField] private float attackDistance   = 1.5f;
-    [SerializeField] private float attackSpeed      = 1.5f;
-    [SerializeField] private float attackDelay      = 0.3f;
-    [SerializeField] private int   attackDamage     = 1;
+    [SerializeField] private float detectionRange = 4f;
+    [SerializeField] private float aggroLoseRange = 15f;
+    [SerializeField] private float attackDistance = 1.5f;
+    [SerializeField] private float attackSpeed = 1.5f;
+    [SerializeField] private float attackDelay = 0.3f;
+    [SerializeField] private int attackDamage = 1;
     [SerializeField] private ParticleSystem hitEffect;
 
     /* ---------- Runtime ----------- */
@@ -24,42 +24,63 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
     private Actor actor;
     private Vector3 initialPosition;
 
-    private bool hasAggro      = false;
-    private bool isReturning   = false;
-    private bool playerIsDead  = false;   // ← NOVO
-    private bool didDamage     = false;
+    private bool hasAggro = false;
+    private bool isReturning = false;
+    private bool playerIsDead = false;   // ← NOVO
+    private bool didDamage = false;
     private float nextAttackTime = 0f;
-    private float healRate       = 0.1f;
+    private float healRate = 0.1f;
 
     public bool HasAggro => hasAggro;
 
     /* ---------- Setup ----------- */
     private void Awake()
     {
-        agent      = GetComponent<NavMeshAgent>();
-        animator   = GetComponent<Animator>();
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
         enemyState = GetComponent<EnemyState>() ?? gameObject.AddComponent<EnemyState>();
-        actor      = GetComponent<Actor>();
+        actor = GetComponent<Actor>();
     }
 
     private void Start()
     {
-        Transform player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        if (player != null)
-            Init(player, transform.position);
-        else
-            Debug.LogWarning($"[Enemy] {gameObject.name} não encontrou Player com tag.");
+        StartCoroutine(WaitForLocalPlayer());
+    }
+
+    private IEnumerator WaitForLocalPlayer()
+    {
+        yield return new WaitForSeconds(0.1f); // delay opcional
+
+        PlayerController localPlayer = null;
+
+        while (localPlayer == null)
+        {
+            var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            foreach (var p in players)
+            {
+                if (p.IsOwner)
+                {
+                    localPlayer = p;
+                    break;
+                }
+            }
+
+            if (localPlayer == null)
+                yield return null; // espera mais um frame
+        }
+
+        Init(localPlayer.transform, transform.position);
     }
 
     public void Init(Transform player, Vector3 origin)
     {
-        target           = player;
-        initialPosition  = origin;
-        playerIsDead     = false;
+        target = player;
+        initialPosition = origin;
+        playerIsDead = false;
 
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         agent.stoppingDistance = attackDistance;
-        agent.updateRotation   = false; // rotação manual
+        agent.updateRotation = false; // rotação manual
     }
 
     /* ---------- Loop ----------- */
@@ -90,7 +111,7 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
         if (target == null || !target.gameObject.activeInHierarchy)
             return playerIsDead = true;
 
-        if (target.TryGetComponent<Actor>(out var a))      playerIsDead = a.CurrentHealth <= 0f;
+        if (target.TryGetComponent<Actor>(out var a)) playerIsDead = a.CurrentHealth <= 0f;
         else if (target.TryGetComponent<PlayerActor>(out var p)) playerIsDead = p.CurrentHealth <= 0f;
 
         return playerIsDead;
@@ -98,7 +119,7 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
 
     private void HandlePlayerDeath()
     {
-        hasAggro    = false;
+        hasAggro = false;
         isReturning = true;
         playerIsDead = true;
 
@@ -187,7 +208,7 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
 
         agent.isStopped = true;
         agent.ResetPath();
-        agent.velocity  = Vector3.zero;
+        agent.velocity = Vector3.zero;
 
         FacePosition(target.position);
         animator.SetFloat("AttackSpeed", attackSpeed);
@@ -255,7 +276,7 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
 
     public void ForceResetToOrigin()
     {
-        hasAggro  = false;
+        hasAggro = false;
         isReturning = true;
         agent.isStopped = false;
         agent.SetDestination(initialPosition);
@@ -270,10 +291,10 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
     public void ResetEnemyStateAfterRespawn()
     {
         enemyState.SetBusy(false);
-        hasAggro      = false;
-        isReturning   = false;
-        playerIsDead  = false;
-        didDamage     = false;
+        hasAggro = false;
+        isReturning = false;
+        playerIsDead = false;
+        didDamage = false;
     }
 }
 

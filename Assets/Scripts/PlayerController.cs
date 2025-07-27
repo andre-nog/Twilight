@@ -1,9 +1,10 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.AI;
+using Unity.Netcode;
 
 [RequireComponent(typeof(NavMeshAgent), typeof(Animator))]
-public class PlayerController : DebuggableMonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
     /* refs & data --------------------------------------------------------- */
     private CustomActions input;
@@ -28,7 +29,7 @@ public class PlayerController : DebuggableMonoBehaviour
     /* life-cycle ----------------------------------------------------------- */
     void Start()
     {
-        enableDebugLogs = false;
+        // enableDebugLogs = false;
     }
 
     void Awake()
@@ -44,6 +45,7 @@ public class PlayerController : DebuggableMonoBehaviour
     /* main loop ----------------------------------------------------------- */
     void Update()
     {
+        if (!IsOwner) return;
         if (Mouse.current.rightButton.wasPressedThisFrame) isHoldingRight = true;
         if (Mouse.current.rightButton.wasReleasedThisFrame) isHoldingRight = false;
         if (isHoldingRight) HoldMove();
@@ -70,7 +72,7 @@ public class PlayerController : DebuggableMonoBehaviour
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 
         if (!TryGetMouseHit(out var hit)) return;
-        DebugLog($"[PlayerController] AttackMove hit: {hit.transform.name} at {hit.point}");
+        //  DebugLog($"[PlayerController] AttackMove hit: {hit.transform.name} at {hit.point}");
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor clickedEnemy &&
             ((1 << clickedEnemy.gameObject.layer) & enemyLayer.value) != 0)
@@ -112,7 +114,7 @@ public class PlayerController : DebuggableMonoBehaviour
     void RightClick()
     {
         if (!TryGetMouseHit(out var hit)) return;
-        DebugLog($"[PlayerController] RightClick hit: {hit.transform.name} at {hit.point}");
+        //  DebugLog($"[PlayerController] RightClick hit: {hit.transform.name} at {hit.point}");
 
         if (hit.transform.GetComponentInParent<Actor>() is Actor enemy)
         {
@@ -149,7 +151,7 @@ public class PlayerController : DebuggableMonoBehaviour
     void HoldMove()
     {
         if (!TryGetMouseHit(out var hit)) return;
-        DebugLog($"[PlayerController] HoldMove hit: {hit.transform.name} at {hit.point}");
+        // DebugLog($"[PlayerController] HoldMove hit: {hit.transform.name} at {hit.point}");
 
         if (Vector3.Distance(agent.destination, hit.point) > 0.2f)
         {

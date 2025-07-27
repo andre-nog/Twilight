@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 868095073905991037}
   - component: {fileID: 7180933622656956910}
   - component: {fileID: 792105853456126212}
-  - component: {fileID: 7948902874218157601}
+  - component: {fileID: 1164170238280865470}
   m_Layer: 0
   m_Name: FireballGraphics
   m_TagString: Untagged
@@ -87,7 +87,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &7948902874218157601
+--- !u!135 &1164170238280865470
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -117,7 +117,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6577290299397866155}
-  - component: {fileID: 4524767066780192772}
+  - component: {fileID: 5508641094248238499}
   - component: {fileID: 6416948275830794824}
   - component: {fileID: 1791929331889114542}
   m_Layer: 0
@@ -137,13 +137,13 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 868095073905991037}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &4524767066780192772
+--- !u!135 &5508641094248238499
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -162,7 +162,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.6
+  m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &6416948275830794824
 Rigidbody:
