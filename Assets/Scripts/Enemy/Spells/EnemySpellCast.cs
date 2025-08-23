@@ -4,7 +4,7 @@ using System.Collections;
 using Unity.Netcode;
 
 [AddComponentMenu("Enemy/Spell Cast")]
-public class EnemySpellCast : MonoBehaviour
+public class EnemySpellCast : NetworkBehaviour
 {
     [Header("Skill de Projétil")]
     [SerializeField] private GameObject spellPrefab;
@@ -14,9 +14,7 @@ public class EnemySpellCast : MonoBehaviour
     [Header("Alerta Visual")]
     [SerializeField] private GameObject alertPrefab;
     private GameObject currentAlert;
-
-    // Posição do alerta em relação ao inimigo (ajuste X, Y, Z aqui)
-    private readonly Vector3 alertOffset = new Vector3(0.28f, 2.2f, 0f);
+    private readonly Vector3 alertOffset = new(0.28f, 2.2f, 0f);
 
     private EnemyDetectionAndAttack attackModule;
     private EnemyState enemyState;
@@ -30,16 +28,46 @@ public class EnemySpellCast : MonoBehaviour
 
     private void Awake()
     {
-        target = GameObject.FindGameObjectWithTag("Player")?.transform;
         animator = GetComponent<Animator>();
         agent = GetComponent<NavMeshAgent>();
         enemyState = GetComponent<EnemyState>();
         attackModule = GetComponent<EnemyDetectionAndAttack>();
     }
 
+    public override void OnNetworkSpawn()
+    {
+        if (!IsServer) return;
+
+        // Aguarda 1 frame para que Player esteja presente
+        StartCoroutine(InitRoutine());
+    }
+
+    private IEnumerator InitRoutine()
+    {
+        yield return null;
+
+        var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+        foreach (var p in players)
+        {
+            if (p.IsOwner)
+            {
+                target = p.transform;
+                break;
+            }
+        }
+
+        if (target == null)
+        {
+            Debug.LogWarning("[EnemySpellCast] Nenhum Player encontrado para mirar.");
+            yield break;
+        }
+
+        RestartCastLoop(spellData.TimeUntilFirstCast + Random.Range(-spellData.RandomStartOffset, spellData.RandomStartOffset));
+    }
+
     private void Update()
     {
-        if (attackModule == null) return;
+        if (!IsServer || attackModule == null) return;
 
         bool hasAggroNow = attackModule.HasAggro;
 
@@ -90,7 +118,6 @@ public class EnemySpellCast : MonoBehaviour
             {
                 timeUntilNextCast -= Time.deltaTime;
 
-                // alerta 1s antes do cast
                 if (timeUntilNextCast <= 1f && currentAlert == null && alertPrefab != null)
                 {
                     Vector3 alertPosition = transform.position + alertOffset;
@@ -100,7 +127,11 @@ public class EnemySpellCast : MonoBehaviour
                 yield return null;
             }
 
-            animator.SetTrigger("SpellTrigger");
+            if (animator != null)
+            {
+                animator.ResetTrigger("SpellTrigger");
+                animator.SetTrigger("SpellTrigger");
+            }
 
             if (currentAlert != null)
             {
@@ -119,9 +150,10 @@ public class EnemySpellCast : MonoBehaviour
         castLoop = null;
     }
 
+    // Chamado por AnimationEvent
     public void OnSpellFrame()
     {
-        if (spellPrefab == null || castPoint == null || target == null) return;
+        if (!IsServer || spellPrefab == null || castPoint == null || target == null) return;
 
         Vector3 dir = target.position - castPoint.position;
         dir.y = 0f;
@@ -129,7 +161,7 @@ public class EnemySpellCast : MonoBehaviour
 
         var projObj = Instantiate(spellPrefab, castPoint.position, rot);
         if (projObj.TryGetComponent<NetworkObject>(out var netObj))
-            netObj.Spawn(); // agora visível na rede
+            netObj.Spawn();
 
         if (projObj.TryGetComponent<FireballEnemy_Script>(out var script))
             script.Init(spellData, gameObject);

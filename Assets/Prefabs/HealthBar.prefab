@@ -302,7 +302,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   healthSlider: {fileID: 4517235310225317211}
-  alertAnchor: {fileID: 0}
 --- !u!1 &8116011746652214413
 GameObject:
   m_ObjectHideFlags: 0

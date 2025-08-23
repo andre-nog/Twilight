@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
-
+using Unity.Netcode;
 public static class FireballSpell
 {
     public static IEnumerator Cast(
@@ -48,7 +48,7 @@ public static class FireballSpell
         ResumeAgent(agent);
     }
 
-    private static void LaunchProjectile(GameObject caster, Transform castPoint, GameObject prefab, ProjectileSpell data, Vector3 aimPoint)
+    public static void LaunchProjectile(GameObject caster, Transform castPoint, GameObject prefab, ProjectileSpell data, Vector3 aimPoint)
     {
         Vector3 spawn = castPoint != null
             ? castPoint.position
@@ -60,10 +60,12 @@ public static class FireballSpell
         Quaternion rotation = Quaternion.LookRotation(direction);
         GameObject fireball = GameObject.Instantiate(prefab, spawn, rotation);
 
+        // 🔥 Instancia na rede
+        if (fireball.TryGetComponent<NetworkObject>(out var netObj))
+            netObj.Spawn();
+
         if (fireball.TryGetComponent<Fireball_Script>(out var spell))
-        {
             spell.Init(data, caster);
-        }
     }
 
     private static void PauseAgent(NavMeshAgent agent)

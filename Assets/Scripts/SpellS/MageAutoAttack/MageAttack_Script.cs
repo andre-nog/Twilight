@@ -1,9 +1,8 @@
-// MageAttack_Script.cs
 using UnityEngine;
+using Unity.Netcode;
 
-public class MageAttack_Script : MonoBehaviour
+public class MageAttack_Script : NetworkBehaviour
 {
-    // parâmetros vindos de PlayerStats
     private float damage;
     private float speed;
     private float range;
@@ -11,10 +10,11 @@ public class MageAttack_Script : MonoBehaviour
     private GameObject caster;
     private Transform homingTarget;
 
-    // componentes de colisão
     private SphereCollider myCollider;
-    private Rigidbody      myRigidbody;
-    private bool           hasHit = false;
+    private Rigidbody myRigidbody;
+    private bool hasHit = false;
+
+    private NetworkVariable<ulong> targetNetId = new NetworkVariable<ulong>();
 
     void Awake()
     {
@@ -25,9 +25,6 @@ public class MageAttack_Script : MonoBehaviour
         myRigidbody.isKinematic = true;
     }
 
-    /// <summary>
-    /// Chamar logo após Instantiate.
-    /// </summary>
     public void Init(
         float damage,
         float speed,
@@ -36,13 +33,41 @@ public class MageAttack_Script : MonoBehaviour
         Transform target
     )
     {
-        this.damage       = damage;
-        this.speed        = speed;
-        this.range        = range;
-        this.caster       = caster;
-        this.homingTarget = target;
+        this.damage = damage;
+        this.speed = speed;
+        this.range = range;
+        this.caster = caster;
 
-        // ignora colisão com quem lançou
+        var targetNetObj = target.GetComponent<NetworkObject>();
+        if (targetNetObj != null)
+        {
+            targetNetId.Value = targetNetObj.NetworkObjectId;
+            homingTarget = target;
+        }
+
+        IgnoreCasterCollision();
+        InitClientRpc(damage, speed, range, targetNetObj);
+    }
+
+    [ClientRpc]
+    private void InitClientRpc(float dmg, float spd, float rng, NetworkObjectReference targetRef)
+    {
+        if (IsServer) return;
+
+        damage = dmg;
+        speed = spd;
+        range = rng;
+
+        if (targetRef.TryGet(out var targetObj))
+            homingTarget = targetObj.transform;
+
+        IgnoreCasterCollision();
+    }
+
+    private void IgnoreCasterCollision()
+    {
+        if (caster == null) return;
+
         foreach (var myCol in GetComponentsInChildren<Collider>())
             foreach (var casterCol in caster.GetComponentsInChildren<Collider>())
                 Physics.IgnoreCollision(myCol, casterCol, true);
@@ -52,24 +77,30 @@ public class MageAttack_Script : MonoBehaviour
     {
         if (homingTarget == null || !homingTarget.gameObject.activeInHierarchy)
         {
-            Destroy(gameObject);
+            if (IsServer && NetworkObject != null)
+                NetworkObject.Despawn();
             return;
         }
 
         Vector3 aim = homingTarget.position + Vector3.up * 0.5f;
-        Vector3 dir = (aim - transform.position).normalized;
-        transform.position += dir * speed * Time.deltaTime;
-        transform.forward = dir;
+        Vector3 dir = aim - transform.position;
+
+        if (dir.sqrMagnitude > 0.001f)
+        {
+            dir.Normalize();
+            transform.position += dir * speed * Time.deltaTime;
+            transform.forward = dir;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (hasHit || other.gameObject == caster) return;
+        if (!IsServer || hasHit || other.gameObject == caster) return;
 
-        // ✅ Garante que o projétil só cause dano ao homingTarget
         if (homingTarget == null || !homingTarget.gameObject.activeInHierarchy)
         {
-            Destroy(gameObject);
+            if (NetworkObject != null)
+                NetworkObject.Despawn();
             return;
         }
 
@@ -89,11 +120,14 @@ public class MageAttack_Script : MonoBehaviour
         }
     }
 
-    private void ApplyDamage(System.Action<int> takeDamage)
-    {
-        hasHit = true;
-        int finalDmg = Mathf.RoundToInt(damage);
-        takeDamage(finalDmg);
-        Destroy(gameObject);
-    }
+private void ApplyDamage(System.Action<int> takeDamage)
+{
+    if (!IsServer) return;
+
+    hasHit = true;
+    int finalDmg = Mathf.RoundToInt(damage);
+    takeDamage(finalDmg);
+    NetworkObject.Despawn();
+}
+
 }

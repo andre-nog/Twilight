@@ -1,11 +1,13 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class WindWall : MonoBehaviour
+public class WindWall : NetworkBehaviour
 {
     [SerializeField] private WindWallSpell windWallData;
 
     private void Start()
     {
+
         if (windWallData != null)
             Destroy(gameObject, windWallData.Duration);
         else
@@ -17,6 +19,7 @@ public class WindWall : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+
         if (other.gameObject.layer == LayerMask.NameToLayer("Projectile"))
         {
             Destroy(other.gameObject);

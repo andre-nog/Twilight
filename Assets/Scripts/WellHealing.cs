@@ -1,6 +1,7 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class WellHealingZone : MonoBehaviour
+public class WellHealingZone : NetworkBehaviour
 {
     [SerializeField] private float radius = 3.5f;
     [SerializeField] private float healPercentPerSecond = 0.10f;
@@ -23,6 +24,7 @@ public class WellHealingZone : MonoBehaviour
 
     private void Update()
     {
+
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);

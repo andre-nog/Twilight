@@ -2703,7 +2703,6 @@ GameObject:
   - component: {fileID: 5871110770340250984}
   - component: {fileID: 1861389887722955420}
   - component: {fileID: -940626870704765738}
-  - component: {fileID: -2560334668260982462}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -2794,9 +2793,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22dfd75301343414aab724e37e8c7760, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   stats: {fileID: 11400000, guid: 96cf9eaaf5c59634580cd54d0653c826, type: 2}
   healthbarPrefab: {fileID: 8108837965831734981, guid: 3ae8d2aed8005cb46b2d7180ec052ea8, type: 3}
+  playerCameraPrefab: {fileID: 3525699260948801863, guid: 68f2b283edee4f24b8580d37490bd881, type: 3}
   healthbarOffset: {x: 0, y: 2.2, z: 0}
+  CurrentHealth:
+    m_InternalValue: 0
+  CurrentMana:
+    m_InternalValue: 0
 --- !u!195 &4589448290563427367
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2809,13 +2814,13 @@ NavMeshAgent:
   m_Radius: 0.15
   m_Speed: 3.5
   m_Acceleration: 99999
-  avoidancePriority: 0
+  avoidancePriority: 1
   m_AngularSpeed: 0
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
-  m_Height: 1.85
+  m_Height: 2
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
@@ -3000,6 +3005,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2b0cabb0542d694999d5cd2840f731b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   castPoint: {fileID: 8261787783372147881}
   fireballPrefab: {fileID: 6873838601870300864, guid: 9ca90231e37db9949979e3b89e90aa78, type: 3}
   fireballData: {fileID: 11400000, guid: 6490657e733099640be41bf3e638e7f5, type: 2}
@@ -3150,19 +3156,6 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &-2560334668260982462
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3959955723881389078}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5eac721cc33d64f43a39bde8c95a742f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &3983362323368804112
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,152 +1,180 @@
-
 using UnityEngine;
-using System.Collections;
+using Unity.Netcode;
 
-public class Actor : MonoBehaviour
+public class Actor : NetworkBehaviour
 {
     [SerializeField] private float maxHealth = 5f;
     [SerializeField] private GameObject healthbarPrefab;
     [SerializeField] private Vector3 healthbarOffset = new Vector3(0, 2.5f, 0);
     [SerializeField] private int experienceReward = 25;
 
-    private Healthbar healthbar;
-    private float currentHealth;
-    private Vector3 initialPosition;
+    public NetworkVariable<float> CurrentHealth = new NetworkVariable<float>(
+        readPerm: NetworkVariableReadPermission.Everyone,
+        writePerm: NetworkVariableWritePermission.Server
+    );
 
-    public float CurrentHealth
-    {
-        get => currentHealth;
-        private set => currentHealth = value;
-    }
+    private Healthbar healthbar;
+    private Vector3 initialPosition;
 
     public float MaxHealth => maxHealth;
 
-    private void Start()
+    private void Awake()
     {
-        initialPosition = transform.position;
-        currentHealth = maxHealth;
+        // reservado para futuras inicializações
+        var _ = GetComponent<NetworkObject>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        Debug.Log($"[Actor] OnNetworkSpawn — {gameObject.name} IsServer={IsServer}");
+
+        if (IsServer)
+        {
+            if (CurrentHealth.Value <= 0f || CurrentHealth.Value > maxHealth)
+                CurrentHealth.Value = maxHealth;
+
+            initialPosition = transform.position;
+        }
 
         if (healthbarPrefab != null)
         {
-            GameObject barInstance = Instantiate(healthbarPrefab, transform);
+            var barInstance = Instantiate(healthbarPrefab, transform);
             barInstance.transform.localPosition = healthbarOffset;
             healthbar = barInstance.GetComponentInChildren<Healthbar>();
         }
         else
         {
-            Debug.LogWarning($"[Actor] Nenhum prefab de barra de vida atribuído em {gameObject.name}");
+            Debug.LogWarning($"[Actor] Sem healthbarPrefab em {gameObject.name}");
         }
 
+        CurrentHealth.OnValueChanged += OnHealthChanged;
+
         if (healthbar != null)
-            healthbar.UpdateHealth(currentHealth, maxHealth);
+            healthbar.UpdateHealth(CurrentHealth.Value, maxHealth);
     }
 
-    public void TakeDamage(int amount)
+    public override void OnDestroy()
     {
-        CurrentHealth -= amount;
-        CurrentHealth = Mathf.Max(CurrentHealth, 0);
+        if (IsSpawned)
+            CurrentHealth.OnValueChanged -= OnHealthChanged;
 
-        IAggroReceiver aggroReceiver = GetComponent<IAggroReceiver>();
-        aggroReceiver?.TakeAggro();
+        base.OnDestroy();
+    }
 
-        if (healthbar != null)
-            healthbar.UpdateHealth(CurrentHealth, maxHealth);
+    private void OnHealthChanged(float oldValue, float newValue)
+    {
+        healthbar?.UpdateHealth(newValue, maxHealth);
+    }
 
-        Debug.Log($"{gameObject.name} recebeu {amount} de dano. HP restante: {CurrentHealth}");
+    public virtual void TakeDamage(int amount)
+    {
+        if (!IsServer || CurrentHealth.Value <= 0f)
+            return;
 
-        if (CurrentHealth <= 0)
+        Debug.Log($"[Actor] TakeDamage em {gameObject.name}: dano={amount}, vidaAntes={CurrentHealth.Value}");
+        CurrentHealth.Value = Mathf.Max(CurrentHealth.Value - amount, 0f);
+
+        // Fallback de aggro quando não sabemos quem atacou
+        GetComponent<IAggroReceiver>()?.TakeAggro();
+
+        if (CurrentHealth.Value <= 0f)
             Die();
     }
 
-    private void Die()
+    /// <summary>
+    /// Versão que recebe o atacante (Transform) para direcionar aggro corretamente.
+    /// Chame esta no servidor quando souber quem aplicou o dano (projétil/skill).
+    /// </summary>
+    public void TakeDamageFrom(int amount, Transform attacker)
     {
-        if (TryGetComponent<EnemyDetectionAndAttack>(out var enemy))
+        if (!IsServer || CurrentHealth.Value <= 0f)
+            return;
+
+        Debug.Log($"[Actor] TakeDamageFrom em {gameObject.name}: dano={amount}, attacker={attacker?.name}");
+        CurrentHealth.Value = Mathf.Max(CurrentHealth.Value - amount, 0f);
+
+        if (TryGetComponent<EnemyDetectionAndAttack>(out var enemyAI) && attacker != null)
+            enemyAI.TakeAggro(attacker);
+        else
+            GetComponent<IAggroReceiver>()?.TakeAggro(); // fallback
+
+        if (CurrentHealth.Value <= 0f)
+            Die();
+    }
+
+    protected virtual void Die()
+    {
+        if (!IsServer)
+            return;
+
+        Debug.Log($"[Actor] Die() chamado em {gameObject.name}");
+
+        if (TryGetComponent<EnemyDetectionAndAttack>(out var enemyAI))
         {
-            Debug.Log($"[Enemy] {gameObject.name} morreu. Respawn em 45 segundos.");
-
-            // ✅ Concede XP ao player antes de iniciar respawn
-            PlayerXP playerXP = FindFirstObjectByType<PlayerXP>();
-            if (playerXP != null)
-            {
-                playerXP.GainXP(experienceReward);
-            }
-
-            // ✅ Notifica o QuestTracker
-            QuestTracker tracker = FindFirstObjectByType<QuestTracker>();
-            if (tracker != null)
-            {
-                tracker.ContarInimigoDerrotado();
-            }
-
-            // ✅ Notifica se for o Boss final (tag "Boss1")
+            // XP/Quest hooks existentes
+            FindFirstObjectByType<PlayerXP>()?.GainXP(experienceReward);
+            FindFirstObjectByType<QuestTracker>()?.ContarInimigoDerrotado();
             if (CompareTag("Boss1"))
-            {
-                QuestTracker bossTracker = FindFirstObjectByType<QuestTracker>();
-                if (bossTracker != null)
-                {
-                    bossTracker.BossFinalDerrotado();
-                }
-            }
+                FindFirstObjectByType<QuestTracker>()?.BossFinalDerrotado();
 
-            // ✅ Limpa alvo do player se estiver atacando este inimigo
-            var controller = FindFirstObjectByType<PlayerController>();
-            if (controller != null && controller.CurrentTarget != null &&
-                controller.CurrentTarget.transform == transform)
-            {
-                controller.ClearTarget();
-            }
+            // 🔔 Limpa alvo em TODOS os clients que estavam mirando este inimigo
+            var no = GetComponent<NetworkObject>();
+            if (no != null)
+                ClearTargetIfMatchesClientRpc(new NetworkObjectReference(no));
 
-            if (EnemyRespawnManager.Instance != null)
-            {
-                EnemyRespawnManager.Instance.ScheduleRespawn(gameObject, initialPosition, 45f);
-            }
-
+            // Não damos SetActive aqui — o RespawnManager faz o hide/show sincronizado
+            EnemyRespawnManager.Instance?.ScheduleRespawn(gameObject, initialPosition, 2f);
             return;
         }
 
-        // (mantém essa parte para outros tipos de Actor, se houver)
-        PlayerXP fallbackXP = FindFirstObjectByType<PlayerXP>();
-        if (fallbackXP != null)
-        {
-            fallbackXP.GainXP(experienceReward);
-        }
+        // Fallback se não for inimigo padrão
+        Debug.Log($"[Actor] {gameObject.name} morreu e deu {experienceReward} XP");
+        var xp = FindFirstObjectByType<PlayerXP>();
+        xp?.GainXP(experienceReward);
 
-        // ✅ Notifica o QuestTracker (fallback)
-        QuestTracker fallbackTracker = FindFirstObjectByType<QuestTracker>();
-        if (fallbackTracker != null)
-        {
-            fallbackTracker.ContarInimigoDerrotado();
-        }
-
-        // ✅ Notifica se for o Boss final (tag "Boss1") - fallback
+        var tracker = FindFirstObjectByType<QuestTracker>();
+        tracker?.ContarInimigoDerrotado();
         if (CompareTag("Boss1"))
-        {
-            QuestTracker bossTracker = FindFirstObjectByType<QuestTracker>();
-            if (bossTracker != null)
-            {
-                bossTracker.BossFinalDerrotado();
-            }
-        }
+            tracker?.BossFinalDerrotado();
 
-        Debug.Log($"[Actor] {gameObject.name} morreu e deu {experienceReward} XP!");
-        Destroy(gameObject);
+        // Se não for inimigo com respawn gerenciado, pode desativar localmente
+        gameObject.SetActive(false);
     }
-
 
     public void Heal(float amount)
     {
-        if (CurrentHealth <= 0) return;
+        if (!IsServer || CurrentHealth.Value <= 0f)
+            return;
 
-        CurrentHealth = Mathf.Min(CurrentHealth + amount, maxHealth);
-        if (healthbar != null)
-            healthbar.UpdateHealth(CurrentHealth, maxHealth);
+        CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + amount, maxHealth);
     }
+
     public void HealFull()
     {
-        // Corrigido: sempre cura totalmente, mesmo se estiver com 0 de vida
-        currentHealth = maxHealth;
+        if (!IsServer)
+            return;
 
-        if (healthbar != null)
-            healthbar.UpdateHealth(currentHealth, maxHealth);
+        CurrentHealth.Value = maxHealth;
+    }
+
+    // -------------------------------------------------------
+    // RPCs auxiliares
+    // -------------------------------------------------------
+    [ClientRpc]
+    private void ClearTargetIfMatchesClientRpc(NetworkObjectReference deadRef)
+    {
+        if (!deadRef.TryGet(out var deadNo)) return;
+        var deadId = deadNo.NetworkObjectId;
+
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
+        {
+            var t = pc.CurrentTarget;
+            if (t == null) continue;
+
+            var tNo = t.GetComponent<NetworkObject>();
+            if (tNo != null && tNo.NetworkObjectId == deadId)
+                pc.ClearTarget();
+        }
     }
 }

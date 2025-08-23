@@ -1,99 +1,124 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using Unity.Netcode;
+using System.Collections;
 
 [RequireComponent(typeof(EnemyState))]
 [AddComponentMenu("Enemy/Detection and Attack")]
-public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
+public class EnemyDetectionAndAttack : NetworkBehaviour, IAggroReceiver
 {
-    /* ---------- Config ----------- */
     [Header("Detection & Attack")]
-    [SerializeField] private float detectionRange = 4f;
-    [SerializeField] private float aggroLoseRange = 15f;
-    [SerializeField] private float attackDistance = 1.5f;
-    [SerializeField] private float attackSpeed = 1.5f;
-    [SerializeField] private float attackDelay = 0.3f;
-    [SerializeField] private int attackDamage = 1;
-    [SerializeField] private ParticleSystem hitEffect;
+    [SerializeField] float detectionRange = 4f;
+    [SerializeField] float aggroLoseRange = 15f;
+    [SerializeField] float attackDistance = 1.5f;
+    [SerializeField] float attackSpeed = 1.5f;
+    [SerializeField] float attackDelay = 0.3f;
+    [SerializeField] int attackDamage = 1;
+    [SerializeField] ParticleSystem hitEffect;
 
-    /* ---------- Runtime ----------- */
-    private NavMeshAgent agent;
-    private Animator animator;
-    private Transform target;
-    private EnemyState enemyState;
-    private Actor actor;
-    private Vector3 initialPosition;
+    NavMeshAgent agent;
+    Animator animator;
+    EnemyState enemyState;
+    Actor actor;
 
-    private bool hasAggro = false;
-    private bool isReturning = false;
-    private bool playerIsDead = false;   // ← NOVO
-    private bool didDamage = false;
-    private float nextAttackTime = 0f;
-    private float healRate = 0.1f;
+    Transform target;
+    Vector3 initialPosition;
+
+    bool hasAggro, isReturning, playerIsDead, didDamage;
+    float nextAttackTime;
+    const float healRate = 0.1f;
 
     public bool HasAggro => hasAggro;
 
-    /* ---------- Setup ----------- */
-    private void Awake()
+    void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        enemyState = GetComponent<EnemyState>() ?? gameObject.AddComponent<EnemyState>();
+        enemyState = GetComponent<EnemyState>();
         actor = GetComponent<Actor>();
     }
-
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        StartCoroutine(WaitForLocalPlayer());
-    }
+        base.OnNetworkSpawn();
 
-    private IEnumerator WaitForLocalPlayer()
-    {
-        yield return new WaitForSeconds(0.1f); // delay opcional
-
-        PlayerController localPlayer = null;
-
-        while (localPlayer == null)
+        if (IsServer)
         {
-            var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-            foreach (var p in players)
-            {
-                if (p.IsOwner)
-                {
-                    localPlayer = p;
-                    break;
-                }
-            }
+            InitServerSide(); // mantenha sua inicialização atual do servidor
+            PlayerRegistry.OnPlayerRegistered += HandleNewPlayerRegistered; // ✅ ouve spawns de players
+        }
+    }
+    private void HandleNewPlayerRegistered(PlayerActor p)
+    {
+        if (!IsServer || p == null || !p.gameObject.activeInHierarchy) return;
+        if (isReturning) return;
 
-            if (localPlayer == null)
-                yield return null; // espera mais um frame
+        float newDistSq = (p.transform.position - transform.position).sqrMagnitude;
+        float curDistSq = target ? (target.position - transform.position).sqrMagnitude : float.MaxValue;
+
+        // Caso clássico: ainda sem aggro, apenas prefere o mais próximo
+        if (!hasAggro)
+        {
+            if (target == null || newDistSq + 0.01f < curDistSq)
+            {
+                target = p.transform;
+                playerIsDead = false;
+                // Debug.Log($"[Enemy] Retarget (sem aggro) para {p.name}");
+            }
+            return;
         }
 
-        Init(localPlayer.transform, transform.position);
+        // Já está em aggro: permitir UMA troca inicial se ainda não causou dano,
+        // o novo player está dentro do detectionRange e é mais próximo.
+        if (!didDamage)
+        {
+            float distFromOrigin = Vector3.Distance(transform.position, initialPosition);
+            bool inDetection = newDistSq <= detectionRange * detectionRange;
+            bool withinAggroArea = distFromOrigin <= aggroLoseRange;
+
+            if (inDetection && withinAggroArea && (newDistSq + 0.01f < curDistSq))
+            {
+                target = p.transform;
+                playerIsDead = false;
+                Debug.Log("[Enemy] Retarget inicial (sem dano) para player recém-registrado mais próximo.");
+            }
+        }
     }
 
-    public void Init(Transform player, Vector3 origin)
+    public override void OnNetworkDespawn()
     {
-        target = player;
-        initialPosition = origin;
-        playerIsDead = false;
+        if (IsServer)
+            PlayerRegistry.OnPlayerRegistered -= HandleNewPlayerRegistered;
 
-        if (agent == null) agent = GetComponent<NavMeshAgent>();
+        base.OnNetworkDespawn();
+    }
+
+    private bool hasInitialized = false;
+
+    private void InitServerSide()
+    {
+        if (hasInitialized) return; // ✅ Garante que só inicializa uma vez
+        hasInitialized = true;
+
+        Debug.Log($"[Enemy] InitServerSide — {gameObject.name}");
+
+        initialPosition = transform.position;
+        target = FindServerTarget();
+        StartCoroutine(RefreshTargetRoutine());
+
         agent.stoppingDistance = attackDistance;
-        agent.updateRotation = false; // rotação manual
+        agent.updateRotation = false;
     }
-
-    /* ---------- Loop ----------- */
-    private void Update()
+    void Update()
     {
-        if (enemyState.IsBusy) return;
+        if (!IsServer || enemyState.IsBusy) return;
 
         if (PlayerIsDead())
         {
-            if (!playerIsDead && hasAggro)        // só entra 1x
+            if (!playerIsDead && hasAggro)
+            {
+                Debug.Log("[Enemy] Jogador morreu, iniciando HandlePlayerDeath");
                 HandlePlayerDeath();
-
-            // segue update normal para retorno / animação
+            }
         }
 
         TickTargeting();
@@ -103,67 +128,71 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
         TickAnimation();
     }
 
-    /* ---------- Helpers ----------- */
-    private bool PlayerIsDead()
+    bool PlayerIsDead()
     {
         if (playerIsDead) return true;
-
         if (target == null || !target.gameObject.activeInHierarchy)
             return playerIsDead = true;
 
-        if (target.TryGetComponent<Actor>(out var a)) playerIsDead = a.CurrentHealth <= 0f;
-        else if (target.TryGetComponent<PlayerActor>(out var p)) playerIsDead = p.CurrentHealth <= 0f;
+        if (target.TryGetComponent<Actor>(out var a))
+            playerIsDead = a.CurrentHealth.Value <= 0f;
+        else if (target.TryGetComponent<PlayerActor>(out var p))
+            playerIsDead = p.CurrentHealth.Value <= 0f;
 
         return playerIsDead;
     }
 
-    private void HandlePlayerDeath()
+    void HandlePlayerDeath()
     {
         hasAggro = false;
         isReturning = true;
         playerIsDead = true;
 
-        // rotação instantânea p/ origem
+        Debug.Log("[Enemy] HandlePlayerDeath: retornando ao ponto inicial");
+
         Vector3 dir = initialPosition - transform.position;
         dir.y = 0f;
+
         if (dir.sqrMagnitude > 0.001f)
             transform.rotation = Quaternion.LookRotation(dir);
 
         agent.SetDestination(initialPosition);
-        target = null;                      // evita re-aggro automático
+        target = null;
     }
 
-    private void TickTargeting()
+    void TickTargeting()
     {
         if (hasAggro && target != null)
             FacePosition(target.position);
     }
 
-    private void TickChase()
+    void TickChase()
     {
-        /* early outs */
+        if (!isReturning && target == null)
+        {
+            target = FindServerTarget();
+            if (target == null) return;
+        }
         if (playerIsDead && !isReturning) return;
         if (target == null && !isReturning) return;
 
         float distToPlayer = target ? Vector3.Distance(transform.position, target.position) : Mathf.Infinity;
         float distFromOrigin = Vector3.Distance(transform.position, initialPosition);
 
-        /* ganho de aggro */
         if (!playerIsDead && !hasAggro && !isReturning &&
             distToPlayer <= detectionRange && distFromOrigin <= aggroLoseRange)
         {
             hasAggro = true;
+            Debug.Log($"[Enemy] Ganhou aggro! distToPlayer={distToPlayer}, detectionRange={detectionRange}");
         }
 
-        /* logic when aggro */
         if (hasAggro)
         {
             if (distFromOrigin > aggroLoseRange)
             {
                 hasAggro = false;
                 isReturning = true;
-
-                transform.rotation = Quaternion.LookRotation(initialPosition - transform.position);
+                Debug.Log($"[Enemy] Perdeu aggro, retornando. distFromOrigin={distFromOrigin}");
                 agent.SetDestination(initialPosition);
                 return;
             }
@@ -171,24 +200,22 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
             if (distToPlayer > attackDistance)
                 agent.SetDestination(target.position);
         }
-        /* logic when returning */
         else if (isReturning)
         {
-            // Mantém orientação para a base durante todo o retorno
             if (agent.velocity.sqrMagnitude > 0.05f)
                 FacePosition(initialPosition);
 
-            // Ao chegar no ponto de origem
             if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
                 isReturning = false;
                 agent.ResetPath();
                 actor?.HealFull();
+                Debug.Log("[Enemy] Chegou à origem, HealFull e reset retorno");
             }
         }
     }
 
-    private void TickAttack()
+    void TickAttack()
     {
         if (!hasAggro || target == null || enemyState.IsBusy || Time.time < nextAttackTime)
             return;
@@ -196,12 +223,13 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
         float dist = Vector3.Distance(transform.position, target.position);
         if (dist <= attackDistance)
         {
+            Debug.Log($"[Enemy] Está em alcance de ataque (dist={dist}), iniciando ataque");
             nextAttackTime = Time.time + 1f / attackSpeed;
             StartCoroutine(MeleeAttackRoutine());
         }
     }
 
-    private IEnumerator MeleeAttackRoutine()
+    IEnumerator MeleeAttackRoutine()
     {
         didDamage = false;
         enemyState.SetBusy(true);
@@ -219,57 +247,71 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
         enemyState.SetBusy(false);
     }
 
-    /* ---------- Damage Event ---------- */
     public void OnAttackFrame()
     {
-        if (didDamage || target == null || !target.gameObject.activeInHierarchy)
-            return;
+        if (!IsServer || didDamage || target == null || !target.gameObject.activeInHierarchy) return;
 
         bool hit = false;
-
-        if (target.TryGetComponent<Actor>(out var a) && a.CurrentHealth > 0)
-        { a.TakeDamage(attackDamage); hit = true; }
-        else if (target.TryGetComponent<PlayerActor>(out var p) && p.CurrentHealth > 0)
-        { p.TakeDamage(attackDamage); hit = true; }
+        if (target.TryGetComponent<Actor>(out var a) && a.CurrentHealth.Value > 0f)
+        {
+            a.TakeDamage(attackDamage);
+            hit = true;
+        }
+        else if (target.TryGetComponent<PlayerActor>(out var p) && p.CurrentHealth.Value > 0f)
+        {
+            p.TakeDamage(attackDamage);
+            hit = true;
+        }
 
         if (hit)
         {
             didDamage = true;
+            Debug.Log($"[Enemy] OnAttackFrame: acertou o alvo e aplicou {attackDamage} de dano");
             if (hitEffect != null)
                 Instantiate(hitEffect, target.position + Vector3.up, Quaternion.identity);
         }
     }
 
-    /* ---------- Misc Ticks ---------- */
-    private void TickHeal()
+    void TickHeal()
     {
-        if (isReturning && actor && actor.CurrentHealth > 0f)
+        if (isReturning && actor && actor.CurrentHealth.Value > 0f)
         {
-            float heal = actor.MaxHealth * healRate * Time.deltaTime;
-            actor.Heal(heal);
+            actor.Heal(actor.MaxHealth * healRate * Time.deltaTime);
         }
     }
 
-    private void TickAnimation()
+    void TickAnimation()
     {
         animator.SetFloat("Speed", enemyState.IsBusy ? 0f : agent.velocity.magnitude);
     }
 
-    /* ---------- Utilities ---------- */
-    private void FacePosition(Vector3 pos)
+    void FacePosition(Vector3 pos)
     {
-        Vector3 dir = pos - transform.position; dir.y = 0f;
+        Vector3 dir = pos - transform.position;
+        dir.y = 0f;
         if (dir.sqrMagnitude < 0.001f) return;
 
         Quaternion look = Quaternion.LookRotation(dir);
         transform.rotation = Quaternion.Slerp(transform.rotation, look, Time.deltaTime * 8f);
     }
 
-    /* ---------- Interfaces / helpers ---------- */
-    public void TakeAggro()
+    public void TakeAggro(Transform attacker)
     {
-        if (!playerIsDead && !hasAggro && !isReturning)
-            hasAggro = true;
+        if (isReturning) return;               // não pega aggro enquanto retorna
+        hasAggro = true;                       // garante estado de aggro
+
+        if (attacker != null)
+        {
+            target = attacker;                 // ✅ sempre prioriza quem bateu
+            playerIsDead = false;              // estamos mirando alguém vivo
+            Debug.Log($"[Enemy] TakeAggro: novo alvo = {attacker.name}");
+        }
+        else if (target == null)
+        {
+            // fallback: se não veio atacante explícito, escolhe por proximidade
+            target = FindServerTarget();
+            Debug.Log("[Enemy] TakeAggro: sem attacker, selecionando alvo por proximidade");
+        }
     }
 
     public void ForceAggroFromNearby(Vector3 _) => TakeAggro();
@@ -280,23 +322,74 @@ public class EnemyDetectionAndAttack : MonoBehaviour, IAggroReceiver
         isReturning = true;
         agent.isStopped = false;
         agent.SetDestination(initialPosition);
+        Debug.Log("[Enemy] ForceResetToOrigin() chamado");
     }
 
     public void ReassignPlayerTarget(Transform newPlayer)
     {
         target = newPlayer;
         playerIsDead = false;
+        Debug.Log($"[Enemy] ReassignPlayerTarget: novo alvo = {newPlayer?.name}");
     }
 
     public void ResetEnemyStateAfterRespawn()
     {
+        initialPosition = transform.position;
         enemyState.SetBusy(false);
         hasAggro = false;
         isReturning = false;
         playerIsDead = false;
         didDamage = false;
+        nextAttackTime = 0f;
+        Debug.Log("[Enemy] ResetEnemyStateAfterRespawn() completo");
     }
-}
 
-/* ---------- Support ---------- */
-public interface IAggroReceiver { void TakeAggro(); }
+    IEnumerator RefreshTargetRoutine()
+    {
+        var wait = new WaitForSeconds(0.25f);
+        while (true)
+        {
+            // só retenta procurar target se NÃO estamos retornando
+            // e se o target atual é nulo/inválido (não sobrescreve quem acabou de bater)
+            if (!isReturning && (target == null || !target.gameObject.activeInHierarchy))
+            {
+                var newTarget = FindServerTarget();
+                if (newTarget != target)
+                {
+                    target = newTarget;
+                    if (target != null)
+                        playerIsDead = false;
+                    Debug.Log("[Enemy] RefreshTargetRoutine: target reatribuído");
+                }
+            }
+            yield return wait;
+        }
+    }
+    private Transform FindServerTarget()
+    {
+        PlayerActor best = null;
+        float bestDistSq = float.MaxValue;
+        Vector3 pos = transform.position;
+
+        foreach (var player in PlayerRegistry.AllPlayers)
+        {
+            if (player == null || !player.gameObject.activeInHierarchy) continue;
+            if (player.CurrentHealth.Value <= 0f) continue;
+
+            float dSq = (player.transform.position - pos).sqrMagnitude;
+            if (dSq < bestDistSq)
+            {
+                bestDistSq = dSq;
+                best = player;
+            }
+        }
+
+        return best ? best.transform : null;
+    }
+
+    public void TakeAggro()
+    {
+        TakeAggro(null); // redireciona para a versão que já existe
+    }
+
+}

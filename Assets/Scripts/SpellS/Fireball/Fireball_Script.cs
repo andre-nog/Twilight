@@ -1,16 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Netcode;
 
-public class Fireball_Script : MonoBehaviour
+[RequireComponent(typeof(NetworkObject))]
+public class Fireball_Script : NetworkBehaviour
 {
-    // Agora privados: setados apenas em Init(...)
-    private ProjectileSpell SpellToCast;
-    private GameObject    Caster;
+    private ProjectileSpell spellData;
+    private GameObject caster;
+    private Vector3 startPosition;
 
-    private SphereCollider       myCollider;
-    private Rigidbody            myRigidbody;
-    private Vector3              startPosition;
-    private HashSet<GameObject>  alreadyHit = new HashSet<GameObject>();
+    private SphereCollider myCollider;
+    private Rigidbody myRigidbody;
+    private HashSet<GameObject> alreadyHit = new HashSet<GameObject>();
 
     void Awake()
     {
@@ -21,71 +22,54 @@ public class Fireball_Script : MonoBehaviour
         myRigidbody.isKinematic = true;
     }
 
-    /// <summary>
-    /// Inicializa o projétil com os dados da spell e quem é o caster.
-    /// Deve ser chamado pelo PlayerMagicSystem.
-    /// </summary>
-    public void Init(ProjectileSpell data, GameObject caster)
+    public void Init(ProjectileSpell data, GameObject casterGO)
     {
-        SpellToCast = data;
-        Caster      = caster;
+        spellData = data;
+        caster = casterGO;
+        startPosition = transform.position;
 
-        // Ignora colisão com o caster
-        foreach (var myCol     in GetComponentsInChildren<Collider>())
-        foreach (var casterCol in Caster.GetComponentsInChildren<Collider>())
-            Physics.IgnoreCollision(myCol, casterCol, true);
+        foreach (var myCol in GetComponentsInChildren<Collider>())
+            foreach (var casterCol in caster.GetComponentsInChildren<Collider>())
+                Physics.IgnoreCollision(myCol, casterCol, true);
 
-        // Ajusta o raio do trigger conforme a spell
-        myCollider.radius  = SpellToCast.SpellRadius;
-        startPosition      = transform.position;
+        myCollider.radius = spellData.SpellRadius;
     }
 
     void Update()
     {
-        if (SpellToCast == null) return;
+        // Apenas o servidor movimenta e destrói o projétil
+        if (!IsServer || spellData == null) return;
 
-        // Move o projétil à frente
-        if (SpellToCast.Speed > 0f)
-        {
-            transform.Translate(
-                transform.forward * SpellToCast.Speed * Time.deltaTime,
-                Space.World
-            );
-        }
+        transform.Translate(
+            transform.forward * spellData.Speed * Time.deltaTime,
+            Space.World
+        );
 
-        // Destrói após ultrapassar o alcance
         float traveled = Vector3.Distance(startPosition, transform.position);
-        if (traveled >= SpellToCast.Range)
-            Destroy(gameObject);
+        if (traveled >= spellData.Range)
+            NetworkObject.Despawn(true);
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (SpellToCast == null) return;
-        if (other.gameObject == Caster) return;
-        if (alreadyHit.Contains(other.gameObject)) return;
+        if (!IsServer || spellData == null || other.gameObject == caster || alreadyHit.Contains(other.gameObject))
+            return;
 
-        // Calcula dano
-        var stats     = Caster.GetComponent<PlayerMagicSystem>()?.GetPlayerStats();
-        float dmgF    = DamageCalculator.CalculateFireballDamage(
-                            SpellToCast.DamageAmount, stats);
-        int finalDmg  = Mathf.RoundToInt(dmgF);
+        alreadyHit.Add(other.gameObject);
 
-        // Inimigos
-        var actor = other.GetComponentInParent<Actor>();
-        if (actor != null)
+        var stats = caster.GetComponent<PlayerMagicSystem>()?.GetPlayerStats();
+        float rawDamage = DamageCalculator.CalculateFireballDamage(spellData.DamageAmount, stats);
+        int finalDamage = Mathf.RoundToInt(rawDamage);
+
+        if (other.GetComponentInParent<Actor>() is Actor enemy)
         {
-            alreadyHit.Add(other.gameObject);
-            actor.TakeDamage(finalDmg);
+            enemy.TakeDamage(finalDamage);
             return;
         }
 
-        // Outros players (PvP)
-        var playerActor = other.GetComponentInParent<PlayerActor>();
-        if (playerActor != null)
+        if (other.GetComponentInParent<PlayerActor>() is PlayerActor player)
         {
-            alreadyHit.Add(other.gameObject);
-            playerActor.TakeDamage(finalDmg);
+            player.TakeDamage(finalDamage);
         }
     }
 }

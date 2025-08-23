@@ -1,63 +1,126 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class PlayerActor : MonoBehaviour
+public class PlayerActor : NetworkBehaviour
 {
+    [Header("Referências")]
     [SerializeField] private PlayerStats stats;
     [SerializeField] private GameObject healthbarPrefab;
+    [SerializeField] private GameObject playerCameraPrefab;
     [SerializeField] private Vector3 healthbarOffset = new Vector3(0, 2.5f, 0);
 
     private Healthbar healthbar;
     private Vector3 initialPosition;
 
-    public float CurrentHealth => stats.CurrentHealth;
-    public PlayerStats Stats => stats; // Getter público seguro
+    // 🔁 Campos sincronizados
+    public NetworkVariable<float> CurrentHealth = new NetworkVariable<float>(
+        readPerm: NetworkVariableReadPermission.Everyone,
+        writePerm: NetworkVariableWritePermission.Server);
 
-    private void Start()
+    public NetworkVariable<float> CurrentMana = new NetworkVariable<float>(
+        readPerm: NetworkVariableReadPermission.Everyone,
+        writePerm: NetworkVariableWritePermission.Server);
+
+    public float MaxHealth => stats.MaxHealth;
+    public float MaxMana => stats.MaxMana;
+    public PlayerStats Stats => stats;
+
+    public override void OnNetworkSpawn()
     {
-        initialPosition = transform.position;
-        stats.CurrentHealth = stats.MaxHealth;
+        if (IsServer)
+        {
+            CurrentHealth.Value = stats.MaxHealth;
+            CurrentMana.Value = stats.MaxMana;
+            initialPosition = transform.position;
 
+            // ✅ Registra no sistema global para IA
+            PlayerRegistry.Register(this);
+        }
+
+        // 🎥 Câmera local
+        if (IsOwner && playerCameraPrefab != null)
+        {
+            GameObject camInstance = Instantiate(playerCameraPrefab);
+
+            if (camInstance.TryGetComponent(out CameraController cc))
+                cc.target = transform;
+
+            Camera camComp = camInstance.GetComponent<Camera>();
+            if (camComp != null)
+                camComp.tag = "MainCamera";
+        }
+
+        // ❤️ Healthbar
         if (healthbarPrefab != null)
         {
-            GameObject barInstance = Instantiate(healthbarPrefab, transform);
+            var barInstance = Instantiate(healthbarPrefab, transform);
             barInstance.transform.localPosition = healthbarOffset;
             healthbar = barInstance.GetComponentInChildren<Healthbar>();
         }
 
+        CurrentHealth.OnValueChanged += OnHealthChanged;
+
         if (healthbar != null)
-            healthbar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth);
+            healthbar.UpdateHealth(CurrentHealth.Value, MaxHealth);
+
+        Debug.Log($"[PlayerActor] OnNetworkSpawn — Vida = {CurrentHealth.Value}/{MaxHealth}");
+    }
+
+    protected new void OnDestroy()
+    {
+        if (IsSpawned)
+            CurrentHealth.OnValueChanged -= OnHealthChanged;
+
+        if (IsServer)
+            PlayerRegistry.Unregister(this);
+    }
+
+    private void OnHealthChanged(float oldValue, float newValue)
+    {
+        healthbar?.UpdateHealth(newValue, MaxHealth);
     }
 
     public void TakeDamage(int amount)
     {
-        stats.CurrentHealth -= amount;
-        stats.CurrentHealth = Mathf.Max(stats.CurrentHealth, 0);
+        if (!IsServer || CurrentHealth.Value <= 0f)
+            return;
 
-        if (healthbar != null)
-            healthbar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth);
+        CurrentHealth.Value = Mathf.Max(CurrentHealth.Value - amount, 0f);
+        Debug.Log($"[Player] {gameObject.name} recebeu {amount} de dano. HP restante: {CurrentHealth.Value}");
 
-        Debug.Log($"[Player] {gameObject.name} recebeu {amount} de dano. HP restante: {stats.CurrentHealth}");
-
-        if (stats.CurrentHealth <= 0)
+        if (CurrentHealth.Value <= 0)
             Die();
+    }
+
+    public void Heal(float amount)
+    {
+        if (!IsServer || CurrentHealth.Value <= 0f)
+            return;
+
+        CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + amount, MaxHealth);
     }
 
     public void IncreaseMaxHealth(float amount)
     {
-        stats.MaxHealth += amount;
-        stats.CurrentHealth += amount;
+        if (!IsServer)
+            return;
 
-        if (healthbar != null)
-            healthbar.UpdateHealth(stats.CurrentHealth, stats.MaxHealth);
+        stats.MaxHealth += amount;
+        CurrentHealth.Value += amount;
+        CurrentHealth.Value = Mathf.Min(CurrentHealth.Value, stats.MaxHealth);
     }
 
     private void Die()
     {
-        Debug.Log("[Player] Morreu. Fazendo respawn...");
+        Debug.Log($"[Player] {gameObject.name} morreu. Respawnando...");
 
         if (PlayerRespawnManager.Instance != null)
+        {
             PlayerRespawnManager.Instance.RespawnPlayer(this, initialPosition);
+        }
         else
-            Debug.LogError("PlayerRespawnManager não encontrado na cena!");
+        {
+            Debug.LogError("[PlayerActor] PlayerRespawnManager não encontrado na cena!");
+        }
     }
 }

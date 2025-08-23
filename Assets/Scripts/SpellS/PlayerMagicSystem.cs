@@ -2,9 +2,10 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.AI;
+using Unity.Netcode;
 
 [RequireComponent(typeof(NavMeshAgent), typeof(Animator))]
-public class PlayerMagicSystem : MonoBehaviour
+public class PlayerMagicSystem : NetworkBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform castPoint;
@@ -13,7 +14,6 @@ public class PlayerMagicSystem : MonoBehaviour
     [SerializeField] private GameObject mageAttackPrefab;
     [SerializeField] private TeleportSpell teleportData;
     [SerializeField] private CooldownSkillUI teleportCooldownUI;
-
     [SerializeField] private WindWallSpell windWallData;
     [SerializeField] private GameObject windWallPrefab;
     [SerializeField] private CooldownSkillUI windWallCooldownUI;
@@ -45,6 +45,7 @@ public class PlayerMagicSystem : MonoBehaviour
 
     private void OnEnable()
     {
+        if (!IsOwner) return;
         input.Main.Teleport.performed += _ => TryTeleport();
         input.Main.CastWindWall.performed += _ => TryCastWindWall();
         input.Enable();
@@ -52,6 +53,7 @@ public class PlayerMagicSystem : MonoBehaviour
 
     private void OnDisable()
     {
+        if (!IsOwner) return;
         input.Main.Teleport.performed -= _ => TryTeleport();
         input.Main.CastWindWall.performed -= _ => TryCastWindWall();
         input.Disable();
@@ -59,85 +61,69 @@ public class PlayerMagicSystem : MonoBehaviour
 
     private void Update()
     {
+        if (!IsOwner) return;
+
         playerStats.CurrentMana = Mathf.Min(
             playerStats.CurrentMana + playerStats.ManaRechargeRate * Time.deltaTime,
             playerStats.MaxMana
         );
     }
 
-    private void TryCastFireball()
+
+    public void TryCastFireballAt(Vector3 aimPoint)
     {
-        if (IsBusy || fireballData == null || fireballPrefab == null) return;
+        if (!IsOwner || IsBusy || fireballData == null || fireballPrefab == null) return;
         if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
 
         isAutoAttacking = false;
-
         playerStats.CurrentMana -= fireballData.ManaCost;
         fireballReadyTime = Time.time + fireballData.Cooldown;
         fireballCooldownUI?.TriggerCooldown();
 
-        StartCoroutine(FireballSpell.Cast(
+        SetFireballBusy(true);
+        SetIsCasting(true);
+
+        CastFireballServerRpc(aimPoint);
+    }
+
+    [ServerRpc]
+    private void CastFireballServerRpc(Vector3 aimPoint)
+    {
+        FireballSpell.LaunchProjectile(
             gameObject,
             castPoint,
             fireballPrefab,
             fireballData,
-            animator,
+            aimPoint
+        );
+
+        SetFireballBusy(false);
+        SetIsCasting(false);
+    }
+
+    private void TryTeleport()
+    {
+        if (IsBusy || teleportData == null) return;
+        if (playerStats.CurrentMana < teleportData.ManaCost || Time.time < teleportReadyTime) return;
+
+        playerStats.CurrentMana -= teleportData.ManaCost;
+        teleportReadyTime = Time.time + teleportData.Cooldown;
+
+        teleportCooldownUI?.TriggerCooldown();
+
+        teleportBusy = true;
+        StartCoroutine(TeleportSpellExecutor.Cast(
+            gameObject,
+            teleportData,
             agent,
-            busy => fireballBusy = busy,
-            casting => isCasting = casting,
+            busy => teleportBusy = busy,
             GetMouseWorldPoint()
         ));
     }
 
-    public void TryCastFireballAt(Vector3 aimPoint)
-    {
-        if (IsBusy || fireballData == null || fireballPrefab == null) return;
-        if (playerStats.CurrentMana < fireballData.ManaCost || Time.time < fireballReadyTime) return;
-
-        isAutoAttacking = false;
-
-        playerStats.CurrentMana -= fireballData.ManaCost;
-        fireballReadyTime = Time.time + fireballData.Cooldown;
-        fireballCooldownUI?.TriggerCooldown();
-
-        StartCoroutine(FireballSpell.Cast(
-            gameObject,
-            castPoint,
-            fireballPrefab,
-            fireballData,
-            animator,
-            agent,
-            busy => fireballBusy = busy,
-            casting => isCasting = casting,
-            aimPoint
-        ));
-    }
-
-private void TryTeleport()
-{
-    if (IsBusy || teleportData == null) return;
-    if (playerStats.CurrentMana < teleportData.ManaCost || Time.time < teleportReadyTime) return;
-
-    playerStats.CurrentMana -= teleportData.ManaCost;
-    teleportReadyTime = Time.time + teleportData.Cooldown;
-
-    teleportCooldownUI?.TriggerCooldown(); // ← cooldown só se teleport for lançado
-
-    teleportBusy = true;
-    StartCoroutine(TeleportSpellExecutor.Cast(
-        gameObject,
-        teleportData,
-        agent,
-        busy => teleportBusy = busy,
-        GetMouseWorldPoint()
-    ));
-}
-
-
     private void TryCastMageAttack()
     {
         if (IsBusy || mageAttackPrefab == null || currentAttackTarget == null) return;
-
         if (Time.time < mageAttackReadyTime) return;
 
         animator.SetFloat("AttackSpeed", playerStats.FinalAttackSpeed);
@@ -181,11 +167,28 @@ private void TryTeleport()
 
         if (mageAttackPrefab == null || currentAttackTarget == null) return;
 
-        Vector3 aim = currentAttackTarget.position + Vector3.up * 0.5f;
+        // Chama o servidor para instanciar o projétil e aplicar dano
+        var targetNetObj = currentAttackTarget.GetComponent<NetworkObject>();
+        if (targetNetObj != null)
+        {
+            RequestMageAttackServerRpc(targetNetObj);
+        }
+    }
+
+    [ServerRpc]
+    private void RequestMageAttackServerRpc(NetworkObjectReference targetRef)
+    {
+        if (!targetRef.TryGet(out var targetObj)) return;
+        if (!targetObj.TryGetComponent<NetworkBehaviour>(out var target)) return;
+
+        Vector3 aim = target.transform.position + Vector3.up * 0.5f;
         Vector3 dir = (aim - castPoint.position).normalized;
         Quaternion rot = Quaternion.LookRotation(dir);
 
         var proj = Instantiate(mageAttackPrefab, castPoint.position, rot);
+        var netObj = proj.GetComponent<NetworkObject>();
+        netObj.Spawn();
+
         if (proj.TryGetComponent<MageAttack_Script>(out var script))
         {
             script.Init(
@@ -193,47 +196,41 @@ private void TryTeleport()
                 playerStats.AutoAttackProjectileSpeed,
                 playerStats.AutoAttackRange,
                 gameObject,
-                currentAttackTarget
+                target.transform
             );
         }
     }
 
-private void TryCastWindWall()
-{
-    if (IsBusy || windWallData == null) return;
-    if (playerStats.CurrentMana < windWallData.ManaCost || Time.time < windWallReadyTime) return;
 
-    // Gira o player na direção do mouse
-    Vector3 aimPoint = GetMouseWorldPoint();
-    Vector3 dir = (aimPoint - transform.position);
-    dir.y = 0f;
-
-    if (dir.sqrMagnitude > 0.01f)
+    private void TryCastWindWall()
     {
-        Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
-        transform.rotation = targetRot;
+        if (IsBusy || windWallData == null) return;
+        if (playerStats.CurrentMana < windWallData.ManaCost || Time.time < windWallReadyTime) return;
+
+        Vector3 aimPoint = GetMouseWorldPoint();
+        Vector3 dir = (aimPoint - transform.position);
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude > 0.01f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+            transform.rotation = targetRot;
+        }
+
+        Vector3 spawnPos = transform.position + dir.normalized * windWallData.Range + Vector3.up * 0.5f;
+        Quaternion rot = Quaternion.LookRotation(dir.normalized);
+
+        windWallBusy = true;
+        isCasting = true;
+
+        playerStats.CurrentMana -= windWallData.ManaCost;
+        windWallReadyTime = Time.time + windWallData.Cooldown;
+
+        Instantiate(windWallPrefab, spawnPos, rot);
+        windWallCooldownUI?.TriggerCooldown();
+
+        StartCoroutine(ResetCastFlags(0.3f));
     }
-
-    // Calcula posição final a uma distância fixa na direção
-    Vector3 spawnPos = transform.position + dir.normalized * windWallData.Range + Vector3.up * 0.5f;
-    Quaternion rot = Quaternion.LookRotation(dir.normalized);
-
-    // Mana e cooldown
-    windWallBusy = true;
-    isCasting = true;
-
-    playerStats.CurrentMana -= windWallData.ManaCost;
-    windWallReadyTime = Time.time + windWallData.Cooldown;
-
-    // Instancia barreira
-    Instantiate(windWallPrefab, spawnPos, rot);
-
-    // Trigger do cooldown na HUD
-    windWallCooldownUI?.TriggerCooldown();
-
-    StartCoroutine(ResetCastFlags(0.3f));
-}
-
 
     private IEnumerator ResetCastFlags(float delay)
     {

@@ -1,37 +1,38 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Controla a movimentação da câmera seguindo um alvo com suavidade.
+/// Deve ser usado com projeção Orthographic ou Perspective.
+/// </summary>
 public class CameraController : MonoBehaviour
 {
+    [Header("Alvo a seguir (atribuído em tempo de execução)")]
     public Transform target;
 
+    [Header("Configurações de movimento")]
     public float smoothSpeed = 8f;
-    public Vector3 offset;
+    public Vector3 offset = new Vector3(0, 10f, 0);
 
-    void Start()
+    void LateUpdate()
     {
         if (target == null)
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
-            {
-                target = player.transform;
-            }
-            else
-            {
-                Debug.LogWarning("[CameraController] Nenhum objeto com tag 'Player' encontrado.");
-            }
+            // Pode acontecer em frame 0 ou se não foi atribuído ainda
+            return;
         }
+
+        Vector3 desiredPosition = target.position + offset;
+        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
+        transform.position = smoothedPosition;
     }
 
-    void Update()
+    private void OnDrawGizmosSelected()
     {
+        // Gizmo para visualizar offset no editor
         if (target != null)
         {
-            Vector3 desiredPosition = new Vector3(target.position.x + offset.x, target.position.y + offset.y, target.position.z + offset.z);
-            Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
-            transform.position = smoothedPosition;
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(target.position, target.position + offset);
         }
     }
 }
